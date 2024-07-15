@@ -1,0 +1,5 @@
+*.pyc
+TODO.md
+*.tar.gz
+*.whl
+todo/*
