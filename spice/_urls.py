@@ -26,6 +26,15 @@ def get_query_execute_url(query: int | str) -> str:
 def get_query_results_url(query: int | str, parameters: Mapping[str, Any]) -> str:
     query_id = get_query_id(query)
     url = url_templates['query_results'].format(query_id=query_id)
+
+    if 'query_parameters' in parameters:
+        parameters['params'] = parameters.pop('query_parameters')
+    for key, value in list(parameters.items()):
+        if isinstance(value, dict):
+            del parameters[key]
+            for subkey, subvalue in value.items():
+                parameters[key + '.' + subkey] = subvalue
+
     return add_args_to_url(url, parameters=parameters)
 
 

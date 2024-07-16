@@ -45,6 +45,10 @@ test = [
     "typing-extensions >=4.9.0",
 ]
 
+[tool.flit.dev-dependencies]
+pytest = "^7.0.0"
+pytest-asyncio = "^0.18.3"  # Add this line for pytest-asyncio
+
 [tool.mypy]
 python_version = "3.9"
 strict = true

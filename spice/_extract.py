@@ -103,10 +103,11 @@ def query(
 
     # execute or retrieve query
     if query_id:
-        if refresh:
-            execution = _execute(**execute_kwargs, verbose=verbose)
-        else:
-            return _get_results(**execute_kwargs, **result_kwargs)
+        if not refresh:
+            df = _get_results(**execute_kwargs, **result_kwargs)
+            if df is not None:
+                return df
+        execution = _execute(**execute_kwargs, verbose=verbose)
 
     # await execution completion
     if execution is None:
@@ -185,10 +186,11 @@ async def async_query(
 
     # execute or retrieve query
     if query_id:
-        if refresh:
-            execution = await _async_execute(**execute_kwargs, verbose=verbose)
-        else:
-            return await _async_get_results(**execute_kwargs, **result_kwargs)
+        if not refresh:
+            df = await _async_get_results(**execute_kwargs, **result_kwargs)
+            if df is not None:
+                return df
+        execution = await _async_execute(**execute_kwargs, verbose=verbose)
 
     # await execution completion
     if execution is None:
@@ -236,6 +238,7 @@ def _execute(
     url = _urls.get_query_execute_url(query_id)
     headers = {'X-Dune-API-Key': api_key}
     data = {'query_parameters': parameters, 'performance': performance}
+    data = {k: v for k, v in data.items() if v is not None}
 
     # print summary
     if verbose:
@@ -260,6 +263,7 @@ async def _async_execute(
     verbose: bool,
 ) -> Execution:
     import aiohttp
+    import json
 
     # process inputs
     if api_key is None:
@@ -269,6 +273,7 @@ async def _async_execute(
     url = _urls.get_query_execute_url(query_id)
     headers = {'X-Dune-API-Key': api_key}
     data = {'query_parameters': parameters, 'performance': performance}
+    data = {k: v for k, v in data.items() if v is not None}
 
     # print summary
     if verbose:
@@ -276,7 +281,7 @@ async def _async_execute(
 
     # get result
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, data=data) as response:
+        async with session.post(url, headers=headers, data=json.dumps(data)) as response:
             result: Mapping[str, Any] = await response.json()
 
     # process result
@@ -338,6 +343,10 @@ def _get_results(
     try:
         as_json = response.json()
         if 'error' in as_json:
+            if as_json['error'] == 'not found: No execution found for the latest version of the given query':
+                if verbose:
+                    print('no existing execution for this query, initializing new execution')
+                return None
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
         pass
@@ -354,6 +363,7 @@ async def _async_get_results(
     performance: Performance | None = None,
     **result_kwargs: Unpack[ResultKwargs],
 ) -> pl.DataFrame:
+    import json
     import aiohttp
 
     # process inputs
@@ -393,6 +403,16 @@ async def _async_get_results(
             result: str = await response.text()
 
     # process result
+    try:
+        as_json = json.loads(result)
+        if 'error' in as_json:
+            if as_json['error'] == 'not found: No execution found for the latest version of the given query':
+                if verbose:
+                    print('no existing execution for this query, initializing new execution')
+                return None
+            raise Exception(as_json['error'])
+    except json.JSONDecodeError:
+        pass
     return _process_raw_table(result, dtypes=dtypes)
 
 
@@ -453,12 +473,6 @@ def _poll_execution(
 
     # print summary
     t_start = time.time()
-    if verbose:
-        print(
-            'polling results, execution_id = '
-            + str(execution['execution_id'])
-            + ', t = 0.0'
-        )
 
     # poll until completion
     while True:
@@ -507,12 +521,6 @@ async def _async_poll_execution(
 
     # print summary
     t_start = time.time()
-    if verbose:
-        print(
-            'polling results, execution_id = '
-            + str(execution['execution_id'])
-            + ', t = 0.0'
-        )
 
     # poll until completion
     async with aiohttp.ClientSession() as session:
