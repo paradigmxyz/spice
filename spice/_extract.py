@@ -351,7 +351,25 @@ def _get_results(
     except json.JSONDecodeError:
         pass
     result = response.text
-    return _process_raw_table(result, dtypes=dtypes)
+    df = _process_raw_table(result, dtypes=dtypes)
+
+    # get all pages
+    limit = result_kwargs.get('limit')
+    if limit is not None:
+        n_rows = len(df)
+        pages = []
+        while 'x-dune-next-uri' in response.headers and n_rows < limit:
+            if verbose:
+                offset = response.headers['x-dune-next-offset']
+                print('gathering additional page, offset = ' + str(offset))
+            url = response.headers['x-dune-next-uri']
+            response = requests.get(url, headers=headers)
+            page = _process_raw_table(response.text, dtypes=dtypes)
+            n_rows += len(page)
+            pages.append(page)
+        df = pl.concat([df, *pages]).limit(limit)
+
+    return df
 
 
 async def _async_get_results(
@@ -401,6 +419,7 @@ async def _async_get_results(
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as response:
             result: str = await response.text()
+            response_headers = response.headers
 
     # process result
     try:
@@ -413,7 +432,30 @@ async def _async_get_results(
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
         pass
-    return _process_raw_table(result, dtypes=dtypes)
+    df = _process_raw_table(result, dtypes=dtypes)
+
+    # get all pages
+    limit = result_kwargs.get('limit')
+    if limit is not None:
+        n_rows = len(df)
+        pages = []
+        async with aiohttp.ClientSession() as session:
+            while 'x-dune-next-uri' in response_headers and n_rows < limit:
+                if verbose:
+                    offset = response.headers['x-dune-next-offset']
+                    print('gathering additional page, offset = ' + str(offset))
+                url = response_headers['x-dune-next-uri']
+                async with session.get(url, headers=headers) as response:
+                    result: str = await response.text()
+                    response_headers = response.headers
+                page = _process_raw_table(result, dtypes=dtypes)
+                n_rows += len(page)
+                pages.append(page)
+
+        df = pl.concat([df, *pages]).limit(limit)
+
+    return df
+
 
 
 def _process_raw_table(
