@@ -102,12 +102,12 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[pl.PolarsDataType] | None = None,
+    dtypes: Sequence[pl.DataType] | None = None,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
     # Parameters
-    - query: query or execution to retrieve results of
+    - query_or_execution: query or execution to retrieve results of
     - verbose: whether to print verbose info
     - refresh: trigger a new execution, or just use most recent execution
     - parameters: dict of query parameters

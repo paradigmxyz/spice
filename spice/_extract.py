@@ -31,7 +31,7 @@ class ResultKwargs(TypedDict):
     sort_by: str | None
     columns: Sequence[str] | None
     extras: Mapping[str, Any] | None
-    dtypes: Sequence[pl.PolarsDataType] | None
+    dtypes: Sequence[pl.DataType] | None
 
 
 def query(
@@ -50,7 +50,7 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[pl.PolarsDataType] | None = None,
+    dtypes: Sequence[pl.DataType] | None = None,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -130,7 +130,7 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[pl.PolarsDataType] | None = None,
+    dtypes: Sequence[pl.DataType] | None = None,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -280,27 +280,37 @@ def _get_results(
     import requests
 
     # process inputs
-    if query_id is not None:
-        url = _urls.get_query_results_url(query_id)
-    elif execution:
-        url = _urls.get_execution_results_url(execution['execution_id'])
     if api_key is None:
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
     if 'dtypes' in data:
-        dtypes = cast(Optional[Sequence[pl.PolarsDataType]], data.pop('dtypes'))
+        dtypes = cast(Optional[Sequence[pl.DataType]], data.pop('dtypes'))
     else:
         dtypes = None
     if performance is not None:
         data['performance'] = performance
     if parameters is not None:
         data['query_parameters'] = parameters
+    if query_id is not None:
+        url = _urls.get_query_results_url(query_id, parameters=data)
+    elif execution:
+        url = _urls.get_execution_results_url(
+            execution['execution_id'], parameters=data
+        )
+    else:
+        raise Exception('must specify query_id or execution')
 
     # get result
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response = requests.get(url, headers=headers)
 
     # process result
+    try:
+        as_json = response.json()
+        if 'error' in as_json:
+            raise Exception(as_json['error'])
+    except json.JSONDecodeError as e:
+        pass
     result = response.text
     return _process_raw_table(result, dtypes=dtypes)
 
@@ -317,24 +327,28 @@ async def _async_get_results(
     import aiohttp
 
     # process inputs
-    if query_id is not None:
-        url = _urls.get_query_results_url(query_id)
-    elif execution:
-        url = _urls.get_execution_results_url(execution['execution_id'])
     if api_key is None:
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
     if 'dtypes' in data:
-        dtypes = cast(Optional[Sequence[pl.PolarsDataType]], data.pop('dtypes'))
+        dtypes = cast(Optional[Sequence[pl.DataType]], data.pop('dtypes'))
     else:
         dtypes = None
     if parameters is not None:
         data['query_parameters'] = parameters
+    if query_id is not None:
+        url = _urls.get_query_results_url(query_id, parameters=data)
+    elif execution:
+        url = _urls.get_execution_results_url(
+            execution['execution_id'], parameters=data
+        )
+    else:
+        raise Exception('must specify query_id or execution')
 
     # get result
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, data=data) as response:
+        async with session.get(url, headers=headers) as response:
             result: str = await response.text()
 
     # process result
@@ -343,15 +357,38 @@ async def _async_get_results(
 
 def _process_raw_table(
     raw_csv: str,
-    dtypes: Sequence[pl.PolarsDataType] | None,
+    dtypes: Sequence[pl.DataType] | None,
 ) -> pl.DataFrame:
-    return pl.read_csv(
+
+    # treat DateTime columns separately
+    use_dtypes = []
+    time_column_indices = []
+    for d, dtype in enumerate(dtypes):
+        if dtype == pl.Datetime or isinstance(dtype, pl.Datetime):
+            use_dtypes.append(pl.String)
+            time_column_indices.append(d)
+        else:
+            use_dtypes.append(dtype)
+
+    # parse data as csv
+    df = pl.read_csv(
         io.StringIO(raw_csv),
         infer_schema_length=len(raw_csv),
         null_values='<nil>',
         truncate_ragged_lines=True,
-        schema_overrides=dtypes,
+        schema_overrides=use_dtypes,
     )
+
+    # parse DateTime columns
+    timestamp_format = "%Y-%m-%d %H:%M:%S%.3f %Z"
+    for time_column_index in time_column_indices:
+        time_columns = [
+            pl.col(df.columns[i]).str.to_datetime(timestamp_format)
+            for i in time_column_indices
+        ]
+    df = df.with_columns(time_columns)
+
+    return df
 
 
 def _poll_execution(
