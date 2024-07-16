@@ -5,7 +5,7 @@ Simple python client for extracting data from the [Dune Analytics API](https://d
 Goals of `spice`:
 - simple, no OOP, entire api is just one function
 - support both sync and async workflows
-- use [polars](https://github.com/pola-rs/polars) Dataframes for all table data
+- tight integration with [polars](https://github.com/pola-rs/polars)
 
 To discuss `spice`, head to the [Paradigm Data Tools](https://t.me/paradigm_data) Telegram channel.
 
@@ -143,8 +143,8 @@ async def async_query(
 ## FAQ
 
 #### How do I set my Dune API key?
-This package looks for a Dune api key in the `DUNE_API_KEY` environment variable.
+`spice` looks for a Dune api key in the `DUNE_API_KEY` environment variable.
 
 #### Which endpoints does this package support?
-This package interacts only with Dune's SQL-related API endpoints, documented [here](https://docs.dune.com/api-reference/executions/execution-object).
+`spice` interacts only with Dune's SQL-related API endpoints, documented [here](https://docs.dune.com/api-reference/executions/execution-object).
 
