@@ -48,6 +48,8 @@ def add_args_to_url(url: str, parameters: Mapping[str, Any]) -> str:
             first = False
         else:
             url += '&'
+        if isinstance(value, list):
+            value = ','.join(str(item) for item in value)
         url += key + '=' + str(value)
     return url
 

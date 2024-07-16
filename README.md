@@ -13,8 +13,6 @@ Goals of `spice`:
     1. [Sync Workflow](#sync-workflow)
     2. [Async Workflow](#async-workflow)
 3. [API Reference](#api-reference)
-    1. [Data Extraction API](#data-extraction-api)
-    2. [Programmatic Query API](#programmatic-query-api)
 4. [FAQ](#faq)
 
 ## Installation
@@ -25,28 +23,30 @@ Goals of `spice`:
 
 Can either use the sync workflow or async workflow. Each workflow has only one function.
 
+See [API Reference](#functions) below for the full list of query function arguments.
+
 ### Sync Workflow
 
 ```python
-import dune
+import spice
 
 # get most recent query results using query id
-df = dune.query(21693)
+df = spice.query(21693)
 
 # get most recent query results using query url
-df = dune.query('https://dune.com/queries/21693')
+df = spice.query('https://dune.com/queries/21693')
 
 # perform new query execution and get results
-df = dune.query(query, refresh=True)
+df = spice.query(query, refresh=True)
 
 # get query results for input parameters
-df = dune.query(query, parameters={'network': 'ethereum'})
+df = spice.query(query, parameters={'network': 'ethereum'})
 
 # perform new query execution, but do not wait for result
-execution = dune.query(query, poll=False)
+execution = spice.query(query, poll=False)
 
 # get results of previous execution
-df = dune.query(execution)
+df = spice.query(execution)
 ```
 
 ### Async Workflow
@@ -54,12 +54,12 @@ df = dune.query(execution)
 The async API is identical to the sync API as above, just add `async_` prefix.
 
 ```python
-df = await dune.async_query(21693)
-df = await dune.async_query('https://dune.com/queries/21693')
-df = await dune.async_query(query, refresh=True)
-df = await dune.async_query(query, parameters={'network': 'ethereum'})
-execution = await dune.async_query(query, poll=False)
-df = await dune.async_query(execution)
+df = await spice.async_query(21693)
+df = await spice.async_query('https://dune.com/queries/21693')
+df = await spice.async_query(query, refresh=True)
+df = await spice.async_query(query, parameters={'network': 'ethereum'})
+execution = await spice.async_query(query, poll=False)
+df = await spice.async_query(execution)
 ```
 
 ## API Reference
@@ -83,7 +83,7 @@ class Execution(TypedDict):
 
 #### Functions
 
-These functions are accessed as `dune.query()` and `dune.aysnc_query()`.
+These functions are accessed as `spice.query()` and `spice.aysnc_query()`.
 
 ```python
 def query(

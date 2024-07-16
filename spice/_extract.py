@@ -22,6 +22,7 @@ class ExecuteKwargs(TypedDict):
 class PollKwargs(TypedDict):
     api_key: str | None
     poll_interval: float
+    verbose: bool
 
 
 class ResultKwargs(TypedDict):
@@ -32,6 +33,7 @@ class ResultKwargs(TypedDict):
     columns: Sequence[str] | None
     extras: Mapping[str, Any] | None
     dtypes: Sequence[pl.DataType] | None
+    verbose: bool
 
 
 def query(
@@ -86,6 +88,7 @@ def query(
     poll_kwargs: PollKwargs = {
         'poll_interval': poll_interval,
         'api_key': api_key,
+        'verbose': verbose,
     }
     result_kwargs: ResultKwargs = {
         'limit': limit,
@@ -95,12 +98,13 @@ def query(
         'columns': columns,
         'extras': extras,
         'dtypes': dtypes,
+        'verbose': verbose,
     }
 
     # execute or retrieve query
     if query_id:
         if refresh:
-            execution = _execute(**execute_kwargs)
+            execution = _execute(**execute_kwargs, verbose=verbose)
         else:
             return _get_results(**execute_kwargs, **result_kwargs)
 
@@ -166,6 +170,7 @@ async def async_query(
     poll_kwargs: PollKwargs = {
         'poll_interval': poll_interval,
         'api_key': api_key,
+        'verbose': verbose,
     }
     result_kwargs: ResultKwargs = {
         'limit': limit,
@@ -175,12 +180,13 @@ async def async_query(
         'columns': columns,
         'extras': extras,
         'dtypes': dtypes,
+        'verbose': verbose,
     }
 
     # execute or retrieve query
     if query_id:
         if refresh:
-            execution = await _async_execute(**execute_kwargs)
+            execution = await _async_execute(**execute_kwargs, verbose=verbose)
         else:
             return await _async_get_results(**execute_kwargs, **result_kwargs)
 
@@ -200,7 +206,10 @@ def _determine_input_type(
     if isinstance(query_or_execution, (int, str)):
         query_id = _urls.get_query_id(query_or_execution)
         execution = None
-    elif isinstance(query_or_execution, dict) and 'execution_id' in query_or_execution:
+    elif (
+        isinstance(query_or_execution, dict)
+        and 'execution_id' in query_or_execution
+    ):
         query_id = None
         execution = query_or_execution
     else:
@@ -214,6 +223,7 @@ def _execute(
     api_key: str | None,
     parameters: Mapping[str, Any] | None,
     performance: Performance,
+    verbose: bool,
 ) -> Execution:
     import json
     import requests
@@ -226,6 +236,10 @@ def _execute(
     url = _urls.get_query_execute_url(query_id)
     headers = {'X-Dune-API-Key': api_key}
     data = {'query_parameters': parameters, 'performance': performance}
+
+    # print summary
+    if verbose:
+        print('initiating new execution of query_id = ' + str(query_id))
 
     # get result
     response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -243,6 +257,7 @@ async def _async_execute(
     api_key: str | None,
     parameters: Mapping[str, Any] | None,
     performance: Performance,
+    verbose: bool,
 ) -> Execution:
     import aiohttp
 
@@ -254,6 +269,10 @@ async def _async_execute(
     url = _urls.get_query_execute_url(query_id)
     headers = {'X-Dune-API-Key': api_key}
     data = {'query_parameters': parameters, 'performance': performance}
+
+    # print summary
+    if verbose:
+        print('initiating new execution of query_id = ' + str(query_id))
 
     # get result
     async with aiohttp.ClientSession() as session:
@@ -288,6 +307,10 @@ def _get_results(
         dtypes = cast(Optional[Sequence[pl.DataType]], data.pop('dtypes'))
     else:
         dtypes = None
+    if 'verbose' in data:
+        verbose = data.pop('verbose')
+    else:
+        verbose = False
     if performance is not None:
         data['performance'] = performance
     if parameters is not None:
@@ -301,6 +324,13 @@ def _get_results(
     else:
         raise Exception('must specify query_id or execution')
 
+    # print summary
+    if verbose:
+        if query_id is not None:
+            print('getting results, query_id = ' + str(query_id))
+        elif execution:
+            print('getting results, execution_id = ' + str(execution['execution_id']))
+
     # get result
     response = requests.get(url, headers=headers)
 
@@ -309,7 +339,7 @@ def _get_results(
         as_json = response.json()
         if 'error' in as_json:
             raise Exception(as_json['error'])
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         pass
     result = response.text
     return _process_raw_table(result, dtypes=dtypes)
@@ -335,6 +365,10 @@ async def _async_get_results(
         dtypes = cast(Optional[Sequence[pl.DataType]], data.pop('dtypes'))
     else:
         dtypes = None
+    if 'verbose' in data:
+        verbose = data.pop('verbose')
+    else:
+        verbose = False
     if parameters is not None:
         data['query_parameters'] = parameters
     if query_id is not None:
@@ -345,6 +379,13 @@ async def _async_get_results(
         )
     else:
         raise Exception('must specify query_id or execution')
+
+    # print summary
+    if verbose:
+        if query_id is not None:
+            print('getting results, query_id = ' + str(query_id))
+        elif execution:
+            print('getting results, execution_id = ' + str(execution['execution_id']))
 
     # get result
     async with aiohttp.ClientSession() as session:
@@ -359,16 +400,18 @@ def _process_raw_table(
     raw_csv: str,
     dtypes: Sequence[pl.DataType] | None,
 ) -> pl.DataFrame:
-
     # treat DateTime columns separately
-    use_dtypes = []
-    time_column_indices = []
-    for d, dtype in enumerate(dtypes):
-        if dtype == pl.Datetime or isinstance(dtype, pl.Datetime):
-            use_dtypes.append(pl.String)
-            time_column_indices.append(d)
-        else:
-            use_dtypes.append(dtype)
+    if dtypes is None:
+        use_dtypes = None
+    else:
+        use_dtypes = []
+        time_column_indices = []
+        for d, dtype in enumerate(dtypes):
+            if dtype == pl.Datetime or isinstance(dtype, pl.Datetime):
+                use_dtypes.append(pl.String)
+                time_column_indices.append(d)
+            else:
+                use_dtypes.append(dtype)
 
     # parse data as csv
     df = pl.read_csv(
@@ -380,13 +423,14 @@ def _process_raw_table(
     )
 
     # parse DateTime columns
-    timestamp_format = "%Y-%m-%d %H:%M:%S%.3f %Z"
-    for time_column_index in time_column_indices:
-        time_columns = [
-            pl.col(df.columns[i]).str.to_datetime(timestamp_format)
-            for i in time_column_indices
-        ]
-    df = df.with_columns(time_columns)
+    if dtypes is not None:
+        timestamp_format = "%Y-%m-%d %H:%M:%S%.3f %Z"
+        for time_column_index in time_column_indices:
+            time_columns = [
+                pl.col(df.columns[i]).str.to_datetime(timestamp_format)
+                for i in time_column_indices
+            ]
+        df = df.with_columns(time_columns)
 
     return df
 
@@ -396,6 +440,7 @@ def _poll_execution(
     *,
     api_key: str | None,
     poll_interval: float,
+    verbose: bool,
 ) -> None:
     import requests
 
@@ -406,9 +451,29 @@ def _poll_execution(
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
 
+    # print summary
+    t_start = time.time()
+    if verbose:
+        print(
+            'polling results, execution_id = '
+            + str(execution['execution_id'])
+            + ', t = 0.0'
+        )
+
     # poll until completion
     while True:
         t_poll = time.time()
+
+        # print summary
+        if verbose:
+            print(
+                'polling results, execution_id = '
+                + str(execution['execution_id'])
+                + ', t = '
+                + str(t_poll - t_start)
+            )
+
+        # poll
         response = requests.get(url, headers=headers)
         result = response.json()
         if result['is_execution_finished']:
@@ -429,6 +494,7 @@ async def _async_poll_execution(
     *,
     api_key: str | None,
     poll_interval: float,
+    verbose: bool,
 ) -> None:
     import aiohttp
 
@@ -439,10 +505,30 @@ async def _async_poll_execution(
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
 
+    # print summary
+    t_start = time.time()
+    if verbose:
+        print(
+            'polling results, execution_id = '
+            + str(execution['execution_id'])
+            + ', t = 0.0'
+        )
+
     # poll until completion
     async with aiohttp.ClientSession() as session:
         while True:
             t_poll = time.time()
+
+            # print summary
+            if verbose:
+                print(
+                    'polling results, execution_id = '
+                    + str(execution['execution_id'])
+                    + ', t = '
+                    + str(t_poll - t_start)
+                )
+
+            # poll
             async with session.get(url, headers=headers) as response:
                 result = await response.json()
                 if result['is_execution_finished']:
@@ -456,3 +542,4 @@ async def _async_poll_execution(
     # check for errors
     if result['state'] == 'QUERY_STATE_FAILED':
         raise Exception('QUERY FAILED execution_id={}'.format(execution_id))
+
