@@ -64,6 +64,13 @@ execution = await spice.async_query(query, poll=False)
 df = await spice.async_query(execution)
 ```
 
+### Quality of Life
+
+`spice` contains additional quality of life features such as:
+- automatically handle pagination of multi-page results
+- automatically execute queries that have no existing executions, especially when using new parameter values
+- allow type overrides using the `dtypes` parameter
+
 ## API Reference
 
 #### Types
