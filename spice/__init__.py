@@ -2,6 +2,6 @@
 
 from ._extract import query, async_query
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 __all__ = ['query', 'async_query']
