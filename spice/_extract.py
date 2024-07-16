@@ -208,10 +208,7 @@ def _determine_input_type(
     if isinstance(query_or_execution, (int, str)):
         query_id = _urls.get_query_id(query_or_execution)
         execution = None
-    elif (
-        isinstance(query_or_execution, dict)
-        and 'execution_id' in query_or_execution
-    ):
+    elif isinstance(query_or_execution, dict) and 'execution_id' in query_or_execution:
         query_id = None
         execution = query_or_execution
     else:
@@ -281,7 +278,9 @@ async def _async_execute(
 
     # get result
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, data=json.dumps(data)) as response:
+        async with session.post(
+            url, headers=headers, data=json.dumps(data)
+        ) as response:
             result: Mapping[str, Any] = await response.json()
 
     # process result
@@ -299,7 +298,7 @@ def _get_results(
     parameters: Mapping[str, Any] | None = None,
     performance: Performance | None = None,
     **result_kwargs: Unpack[ResultKwargs],
-) -> pl.DataFrame:
+) -> pl.DataFrame | None:
     import json
     import requests
 
@@ -343,9 +342,14 @@ def _get_results(
     try:
         as_json = response.json()
         if 'error' in as_json:
-            if as_json['error'] == 'not found: No execution found for the latest version of the given query':
+            if (
+                as_json['error']
+                == 'not found: No execution found for the latest version of the given query'
+            ):
                 if verbose:
-                    print('no existing execution for this query, initializing new execution')
+                    print(
+                        'no existing execution for this query, initializing new execution'
+                    )
                 return None
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
@@ -380,7 +384,7 @@ async def _async_get_results(
     parameters: Mapping[str, Any] | None = None,
     performance: Performance | None = None,
     **result_kwargs: Unpack[ResultKwargs],
-) -> pl.DataFrame:
+) -> pl.DataFrame | None:
     import json
     import aiohttp
 
@@ -425,9 +429,14 @@ async def _async_get_results(
     try:
         as_json = json.loads(result)
         if 'error' in as_json:
-            if as_json['error'] == 'not found: No execution found for the latest version of the given query':
+            if (
+                as_json['error']
+                == 'not found: No execution found for the latest version of the given query'
+            ):
                 if verbose:
-                    print('no existing execution for this query, initializing new execution')
+                    print(
+                        'no existing execution for this query, initializing new execution'
+                    )
                 return None
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
@@ -446,7 +455,7 @@ async def _async_get_results(
                     print('gathering additional page, offset = ' + str(offset))
                 url = response_headers['x-dune-next-uri']
                 async with session.get(url, headers=headers) as response:
-                    result: str = await response.text()
+                    result = await response.text()
                     response_headers = response.headers
                 page = _process_raw_table(result, dtypes=dtypes)
                 n_rows += len(page)
@@ -457,14 +466,13 @@ async def _async_get_results(
     return df
 
 
-
 def _process_raw_table(
     raw_csv: str,
     dtypes: Sequence[pl.DataType] | None,
 ) -> pl.DataFrame:
     # treat DateTime columns separately
     if dtypes is None:
-        use_dtypes = None
+        use_dtypes: Sequence[pl.DataType | type[pl.DataType]] | None = None
     else:
         use_dtypes = []
         time_column_indices = []
@@ -486,7 +494,7 @@ def _process_raw_table(
 
     # parse DateTime columns
     if dtypes is not None:
-        timestamp_format = "%Y-%m-%d %H:%M:%S%.3f %Z"
+        timestamp_format = '%Y-%m-%d %H:%M:%S%.3f %Z'
         for time_column_index in time_column_indices:
             time_columns = [
                 pl.col(df.columns[i]).str.to_datetime(timestamp_format)
@@ -592,4 +600,3 @@ async def _async_poll_execution(
     # check for errors
     if result['state'] == 'QUERY_STATE_FAILED':
         raise Exception('QUERY FAILED execution_id={}'.format(execution_id))
-

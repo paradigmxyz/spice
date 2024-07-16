@@ -53,7 +53,7 @@ pytest-asyncio = "^0.18.3"  # Add this line for pytest-asyncio
 python_version = "3.9"
 strict = true
 implicit_reexport = true
-files = ["dune"]
+files = ["spice"]
 
 [tool.pytest.ini_options]
 testpaths = [

@@ -23,10 +23,11 @@ def get_query_execute_url(query: int | str) -> str:
         raise Exception('unknown query format: ' + str(type(query)))
 
 
-def get_query_results_url(query: int | str, parameters: Mapping[str, Any]) -> str:
+def get_query_results_url(query: int | str, parameters: dict[str, Any]) -> str:
     query_id = get_query_id(query)
     url = url_templates['query_results'].format(query_id=query_id)
 
+    parameters = dict(parameters.items())
     if 'query_parameters' in parameters:
         parameters['params'] = parameters.pop('query_parameters')
     for key, value in list(parameters.items()):
