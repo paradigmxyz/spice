@@ -7,6 +7,8 @@ Goals of `spice`:
 - support both sync and async workflows
 - use [polars](https://github.com/pola-rs/polars) Dataframes for all table data
 
+To discuss `spice`, head to the [Paradigm Data Tools](https://t.me/paradigm_data) Telegram channel.
+
 ## Table of Contents
 1. [Installation](#installation)
 2. [Examples](#examples)
@@ -139,9 +141,6 @@ async def async_query(
 ```
 
 ## FAQ
-
-#### Where can I discuss `spice`?
-Check out the Paradigm Data Tools Telegram channel.
 
 #### How do I set my Dune API key?
 This package looks for a Dune api key in the `DUNE_API_KEY` environment variable.
