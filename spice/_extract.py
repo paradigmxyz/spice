@@ -114,7 +114,11 @@ def query(
         raise Exception('could not determine execution')
     if poll:
         _poll_execution(execution, **poll_kwargs)
-        return _get_results(execution, api_key, **result_kwargs)
+        df = _get_results(execution, api_key, **result_kwargs)
+        if df is not None:
+            return df
+        else:
+            raise Exception('no successful execution for query')
     else:
         return execution
 
@@ -197,7 +201,11 @@ async def async_query(
         raise Exception('could not determine execution')
     if poll:
         await _async_poll_execution(execution, **poll_kwargs)
-        return await _async_get_results(execution, api_key, **result_kwargs)
+        df = await _async_get_results(execution, api_key, **result_kwargs)
+        if df is not None:
+            return df
+        else:
+            raise Exception('no successful execution for query')
     else:
         return execution
 
