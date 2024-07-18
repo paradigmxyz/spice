@@ -9,6 +9,7 @@ url_templates = {
     'execution_results': 'https://api.dune.com/api/v1/execution/{execution_id}/results/csv',
     'query_execution': 'https://api.dune.com/api/v1/query/{query_id}/execute',
     'query_results': 'https://api.dune.com/api/v1/query/{query_id}/results/csv',
+    'query_results_json': 'https://api.dune.com/api/v1/query/{query_id}/results',
     'query_create': 'https://api.dune.com/api/v1/query',
     'query': 'https://api.dune.com/api/v1/query/{query_id}',
 }
@@ -23,9 +24,15 @@ def get_query_execute_url(query: int | str) -> str:
         raise Exception('unknown query format: ' + str(type(query)))
 
 
-def get_query_results_url(query: int | str, parameters: dict[str, Any]) -> str:
+def get_query_results_url(
+    query: int | str, parameters: dict[str, Any], csv: bool = True
+) -> str:
     query_id = get_query_id(query)
-    url = url_templates['query_results'].format(query_id=query_id)
+    if csv:
+        template = url_templates['query_results']
+    else:
+        template = url_templates['query_results_json']
+    url = template.format(query_id=query_id)
 
     parameters = dict(parameters.items())
     if 'query_parameters' in parameters:

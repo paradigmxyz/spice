@@ -41,6 +41,7 @@ def query(
     *,
     verbose: bool = True,
     refresh: bool = False,
+    max_age: int | float | None = None,
     parameters: Mapping[str, Any] | None = None,
     api_key: str | None = None,
     performance: Performance = 'medium',
@@ -60,6 +61,7 @@ def query(
     - query: query or execution to retrieve results of
     - verbose: whether to print verbose info
     - refresh: trigger a new execution, or just use most recent execution
+    - max_age: max age of last execution in seconds, or trigger a new execution
     - parameters: dict of query parameters
     - api_key: dune api key, otherwise use DUNE_API_KEY env var
     - performance: performance level
@@ -103,6 +105,10 @@ def query(
 
     # execute or retrieve query
     if query_id:
+        if max_age is not None and not refresh:
+            age = _get_query_latest_age(**execute_kwargs, verbose=verbose)  # type: ignore
+            if age is None or age > max_age:
+                refresh = True
         if not refresh:
             df = _get_results(**execute_kwargs, **result_kwargs)
             if df is not None:
@@ -128,6 +134,7 @@ async def async_query(
     *,
     verbose: bool = True,
     refresh: bool = False,
+    max_age: int | float | None = None,
     parameters: Mapping[str, Any] | None = None,
     api_key: str | None = None,
     performance: Performance = 'medium',
@@ -147,6 +154,7 @@ async def async_query(
     - query: query or execution to retrieve results of
     - verbose: whether to print verbose info
     - refresh: trigger a new execution, or just use most recent execution
+    - max_age: max age of last execution in seconds, or trigger a new execution
     - parameters: dict of query parameters
     - api_key: dune api key, otherwise use DUNE_API_KEY env var
     - performance: performance level
@@ -190,6 +198,10 @@ async def async_query(
 
     # execute or retrieve query
     if query_id:
+        if max_age is not None and not refresh:
+            age = await _async_get_query_latest_age(**execute_kwargs, verbose=verbose)  # type: ignore
+            if age is None or age > max_age:
+                refresh = True
         if not refresh:
             df = await _async_get_results(**execute_kwargs, **result_kwargs)
             if df is not None:
@@ -223,6 +235,139 @@ def _determine_input_type(
         raise Exception('input must be a query id, query url, or execution id')
 
     return query_id, execution
+
+
+def _get_query_latest_age(
+    query_id: int,
+    *,
+    verbose: bool = True,
+    parameters: Mapping[str, Any] | None = None,
+    performance: Performance = 'medium',
+    api_key: str | None = None,
+) -> float | None:
+    import datetime
+    import json
+    import requests
+
+    # process inputs
+    if api_key is None:
+        api_key = _urls.get_api_key()
+    headers = {'X-Dune-API-Key': api_key}
+    data = {}
+    if parameters is not None:
+        data['query_parameters'] = parameters
+    url = _urls.get_query_results_url(query_id, parameters=data, csv=False)
+
+    # print summary
+    if verbose:
+        print('checking age of last execution, query_id = ' + str(query_id))
+
+    # perform request
+    response = requests.get(url, headers=headers)
+
+    # check if result is error
+    result = response.json()
+    try:
+        if 'error' in result:
+            if (
+                result['error']
+                == 'not found: No execution found for the latest version of the given query'
+            ):
+                if verbose:
+                    print('no age for query, because no previous executions exist')
+                return None
+            raise Exception(result['error'])
+    except json.JSONDecodeError:
+        pass
+
+    # process result
+    if 'execution_started_at' in result:
+        now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+        started = (
+            datetime.datetime.strptime(
+                result['execution_started_at'],
+                '%Y-%m-%dT%H:%M:%S.%fZ',
+            )
+            .replace(tzinfo=datetime.timezone.utc)
+            .timestamp()
+        )
+        age = now - started
+
+        if verbose:
+            print('latest result age:', age)
+
+        return age
+    else:
+        if verbose:
+            print('no age for query, because no previous executions exist')
+        return None
+
+
+async def _async_get_query_latest_age(
+    query_id: int,
+    *,
+    verbose: bool = True,
+    parameters: Mapping[str, Any] | None = None,
+    performance: Performance = 'medium',
+    api_key: str | None = None,
+) -> float | None:
+    import datetime
+    import json
+    import aiohttp
+
+    # process inputs
+    if api_key is None:
+        api_key = _urls.get_api_key()
+    headers = {'X-Dune-API-Key': api_key}
+    data = {}
+    if parameters is not None:
+        data['query_parameters'] = parameters
+    url = _urls.get_query_results_url(query_id, parameters=data, csv=False)
+
+    # print summary
+    if verbose:
+        print('checking age of last execution, query_id = ' + str(query_id))
+
+    # perform request
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            result: Mapping[str, Any] = await response.json()
+
+    # check if result is error
+    try:
+        if 'error' in result:
+            if (
+                result['error']
+                == 'not found: No execution found for the latest version of the given query'
+            ):
+                if verbose:
+                    print('no age for query, because no previous executions exist')
+                return None
+            raise Exception(result['error'])
+    except json.JSONDecodeError:
+        pass
+
+    # process result
+    if 'execution_started_at' in result:
+        now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+        started = (
+            datetime.datetime.strptime(
+                result['execution_started_at'],
+                '%Y-%m-%dT%H:%M:%S.%fZ',
+            )
+            .replace(tzinfo=datetime.timezone.utc)
+            .timestamp()
+        )
+        age = now - started
+
+        if verbose:
+            print('latest result age:', age)
+
+        return age
+    else:
+        if verbose:
+            print('no age for query, because no previous executions exist')
+        return None
 
 
 def _execute(

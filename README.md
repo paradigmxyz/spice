@@ -100,6 +100,7 @@ def query(
     *,
     verbose: bool = True,
     refresh: bool = False,
+    max_age: int | float | None = None,
     parameters: Mapping[str, Any] | None = None,
     api_key: str | None = None,
     performance: Performance = 'medium',
@@ -119,6 +120,7 @@ def query(
     - query_or_execution: query or execution to retrieve results of
     - verbose: whether to print verbose info
     - refresh: trigger a new execution, or just use most recent execution
+    - max_age: max age of last execution in seconds, or trigger a new execution
     - parameters: dict of query parameters
     - api_key: dune api key, otherwise use DUNE_API_KEY env var
     - performance: performance level
