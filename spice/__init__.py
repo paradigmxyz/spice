@@ -1,4 +1,4 @@
-"""Simple python client for exctracting data from the Dune Analytics API"""
+"""Simple python client for extracting data from the Dune Analytics API"""
 
 from ._extract import query, async_query
 
