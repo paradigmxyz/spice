@@ -553,8 +553,8 @@ def _poll_execution(
 
         # wait until polling interval
         t_wait = time.time() - t_poll
-        if t_wait > 0:
-            time.sleep(t_wait)
+        if t_wait < poll_interval:
+            time.sleep(poll_interval - t_wait)
 
     # check for errors
     if result['state'] == 'QUERY_STATE_FAILED':
@@ -602,8 +602,8 @@ async def _async_poll_execution(
 
             # wait until polling interval
             t_wait = time.time() - t_poll
-            if t_wait > 0:
-                await asyncio.sleep(t_wait)
+            if t_wait < poll_interval:
+                await asyncio.sleep(poll_interval - t_wait)
 
     # check for errors
     if result['state'] == 'QUERY_STATE_FAILED':
