@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import io
 import time
-from typing import Any, Mapping, Optional, Sequence, TypedDict, cast
+from typing import Any, Literal, Mapping, Optional, Sequence, TypedDict, cast, overload
 from typing_extensions import Unpack
 
 import polars as pl
@@ -32,8 +32,52 @@ class ResultKwargs(TypedDict):
     sort_by: str | None
     columns: Sequence[str] | None
     extras: Mapping[str, Any] | None
-    dtypes: Sequence[pl.DataType] | None
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None
     verbose: bool
+
+
+@overload
+def query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[True] = True,
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+) -> pl.DataFrame | Execution: ...
+
+
+@overload
+def query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[False],
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+) -> pl.DataFrame | Execution: ...
 
 
 def query(
@@ -53,7 +97,7 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[pl.DataType] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -129,6 +173,50 @@ def query(
         return execution
 
 
+@overload
+async def async_query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[True] = True,
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+) -> pl.DataFrame: ...
+
+
+@overload
+async def async_query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[False],
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+) -> Execution: ...
+
+
 async def async_query(
     query_or_execution: Query | Execution,
     *,
@@ -146,7 +234,7 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[pl.DataType] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -461,7 +549,7 @@ def _get_results(
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
     if 'dtypes' in data:
-        dtypes = cast(Optional[Sequence[pl.DataType]], data.pop('dtypes'))
+        dtypes = cast(Optional[Sequence[type[pl.DataType]]], data.pop('dtypes'))
     else:
         dtypes = None
     if 'verbose' in data:
@@ -547,7 +635,7 @@ async def _async_get_results(
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
     if 'dtypes' in data:
-        dtypes = cast(Optional[Sequence[pl.DataType]], data.pop('dtypes'))
+        dtypes = cast(Optional[Sequence[type[pl.DataType]]], data.pop('dtypes'))
     else:
         dtypes = None
     if 'verbose' in data:
@@ -621,11 +709,25 @@ async def _async_get_results(
 
 def _process_raw_table(
     raw_csv: str,
-    dtypes: Sequence[pl.DataType] | None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None,
 ) -> pl.DataFrame:
+    first_line = raw_csv.split('\n', maxsplit=1)[0]
+    column_order = first_line.split(',')
+
+    # convert from map to sequence
+    if isinstance(dtypes, dict):
+        new_dtypes = []
+        for column in column_order:
+            new_dtype = dtypes.get(column)
+            if new_dtype is not None:
+                new_dtypes.append(new_dtype)
+            else:
+                raise Exception('dtype not specified for column: ' + str(column))
+        dtypes = new_dtypes
+
     # treat DateTime columns separately
     if dtypes is None:
-        use_dtypes: Sequence[pl.DataType | type[pl.DataType]] | None = None
+        use_dtypes: Sequence[type[pl.DataType]] | None = None
     else:
         use_dtypes = []
         time_column_indices = []
@@ -648,11 +750,10 @@ def _process_raw_table(
     # parse DateTime columns
     if dtypes is not None:
         timestamp_format = '%Y-%m-%d %H:%M:%S%.3f %Z'
-        for time_column_index in time_column_indices:
-            time_columns = [
-                pl.col(df.columns[i]).str.to_datetime(timestamp_format)
-                for i in time_column_indices
-            ]
+        time_columns = [
+            pl.col(df.columns[i]).str.to_datetime(timestamp_format)
+            for i in time_column_indices
+        ]
         df = df.with_columns(time_columns)
 
     return df
