@@ -3,7 +3,16 @@ from __future__ import annotations
 import asyncio
 import io
 import time
-from typing import Any, Literal, Mapping, Optional, Sequence, TypedDict, cast, overload
+from typing import (
+    Any,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    cast,
+    overload,
+)
 from typing_extensions import Unpack
 
 import polars as pl
@@ -719,34 +728,13 @@ async def _async_get_results(
 
 def _process_raw_table(
     raw_csv: str,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None,
+    dtypes: Sequence[type[pl.DataType] | None]
+    | Mapping[str, type[pl.DataType] | None]
+    | None,
 ) -> pl.DataFrame:
+    # convert from map to sequence
     first_line = raw_csv.split('\n', maxsplit=1)[0]
     column_order = first_line.split(',')
-
-    # convert from map to sequence
-    if isinstance(dtypes, dict):
-        new_dtypes = []
-        for column in column_order:
-            new_dtype = dtypes.get(column)
-            if new_dtype is not None:
-                new_dtypes.append(new_dtype)
-            else:
-                raise Exception('dtype not specified for column: ' + str(column))
-        dtypes = new_dtypes
-
-    # treat DateTime columns separately
-    if dtypes is None:
-        use_dtypes: Sequence[type[pl.DataType]] | None = None
-    else:
-        use_dtypes = []
-        time_column_indices = []
-        for d, dtype in enumerate(dtypes):
-            if dtype == pl.Datetime or isinstance(dtype, pl.Datetime):
-                use_dtypes.append(pl.String)
-                time_column_indices.append(d)
-            else:
-                use_dtypes.append(dtype)
 
     # parse data as csv
     df = pl.read_csv(
@@ -754,19 +742,49 @@ def _process_raw_table(
         infer_schema_length=len(raw_csv),
         null_values='<nil>',
         truncate_ragged_lines=True,
-        schema_overrides=use_dtypes,
+        schema_overrides=[pl.String for column in column_order],
     )
 
-    # parse DateTime columns
-    if dtypes is not None:
-        timestamp_format = '%Y-%m-%d %H:%M:%S%.3f %Z'
-        time_columns = [
-            pl.col(df.columns[i]).str.to_datetime(timestamp_format)
-            for i in time_column_indices
+    # cast types
+    new_dtypes = []
+    for c, column in enumerate(df.columns):
+        new_dtype = None
+        if dtypes is not None:
+            if isinstance(dtypes, list):
+                if len(dtypes) > c and dtypes[c] is not None:
+                    new_dtype = dtypes[c]
+            elif isinstance(dtypes, dict):
+                if column in dtypes and dtypes[column] is not None:
+                    new_dtype = dtypes[column]
+            else:
+                raise Exception('invalid format for dtypes')
+
+        if new_dtype is None:
+            new_dtype = infer_dtype(df[column])
+
+        if new_dtype == pl.Datetime or isinstance(new_dtype, pl.Datetime):
+            time_format = '%Y-%m-%d %H:%M:%S%.3f %Z'
+            df = df.with_columns(pl.col(column).str.to_datetime(time_format))
+            new_dtype = None
+
+        new_dtypes.append(new_dtype)
+    df = df.with_columns(
+        *[
+            pl.col(column).cast(dtype)
+            for column, dtype in zip(df.columns, new_dtypes)
+            if dtype is not None
         ]
-        df = df.with_columns(time_columns)
+    )
 
     return df
+
+
+def infer_dtype(s: pl.Series) -> pl.DataType:
+    try:
+        as_str = pl.DataFrame(s).write_csv(None)
+        return pl.read_csv(io.StringIO(as_str))[s.name].dtype
+    except Exception:
+        return pl.String()
 
 
 def _poll_execution(
