@@ -7,7 +7,7 @@ import spice
 
 
 def test_query():
-    df = spice.query(4388)
+    spice.query(4388)
 
 
 def test_query_limits():
@@ -29,9 +29,7 @@ def test_query_offsets():
 
 def test_query_sort():
     df_sort_project = spice.query(4388, sort_by='project')
-    assert df_sort_project.equals(
-        df_sort_project.sort('project', nulls_last=True)
-    )
+    assert df_sort_project.equals(df_sort_project.sort('project', nulls_last=True))
 
     df_sort_usd_volume = spice.query(4388, sort_by='usd_volume')
     assert df_sort_usd_volume.equals(
@@ -42,7 +40,7 @@ def test_query_sort():
 
 
 def test_query_columns():
-    columns = ["project", '_col1']
+    columns = ['project', '_col1']
     df_columns = spice.query(4388, columns=columns)
     assert df_columns.columns == columns
     df = spice.query(4388)
@@ -92,4 +90,3 @@ def test_parameters():
             'date_field': parameters['DateField'],
             'list_field': parameters['ListField'],
         }
-

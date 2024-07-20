@@ -9,7 +9,7 @@ import spice
 
 @pytest.mark.asyncio
 async def test_query_async():
-    df = await spice.async_query(4388)
+    await spice.async_query(4388)
 
 
 @pytest.mark.asyncio
@@ -34,9 +34,7 @@ async def test_query_offsets_async():
 @pytest.mark.asyncio
 async def test_query_sort_async():
     df_sort_project = await spice.async_query(4388, sort_by='project')
-    assert df_sort_project.equals(
-        df_sort_project.sort('project', nulls_last=True)
-    )
+    assert df_sort_project.equals(df_sort_project.sort('project', nulls_last=True))
 
     df_sort_usd_volume = await spice.async_query(4388, sort_by='usd_volume')
     assert df_sort_usd_volume.equals(
@@ -48,7 +46,7 @@ async def test_query_sort_async():
 
 @pytest.mark.asyncio
 async def test_query_columns_async():
-    columns = ["project", '_col1']
+    columns = ['project', '_col1']
     df_columns = await spice.async_query(4388, columns=columns)
     assert df_columns.columns == columns
     df = await spice.async_query(4388)
@@ -101,4 +99,3 @@ async def test_parameters_async():
             'date_field': parameters['DateField'],
             'list_field': parameters['ListField'],
         }
-
