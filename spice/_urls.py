@@ -36,7 +36,7 @@ def get_query_results_url(
 
     parameters = dict(parameters.items())
     if 'query_parameters' in parameters:
-        parameters['params'] = parameters.pop('query_parameters')
+        parameters['param'] = parameters.pop('query_parameters')
     for key, value in list(parameters.items()):
         if isinstance(value, dict):
             del parameters[key]
