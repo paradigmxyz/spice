@@ -481,6 +481,9 @@ def _execute(
     # print summary
     if verbose:
         print('initiating new execution of query_id = ' + str(query_id))
+        if verbose >= 2:
+            print('execution url = ' + url)
+            print('execution parameters = ' + str(parameters))
 
     # get result
     response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -516,6 +519,9 @@ async def _async_execute(
     # print summary
     if verbose:
         print('initiating new execution of query_id = ' + str(query_id))
+        if verbose >= 2:
+            print('execution url = ' + url)
+            print('execution parameters = ' + str(parameters))
 
     # get result
     async with aiohttp.ClientSession() as session:
@@ -575,6 +581,8 @@ def _get_results(
             print('getting results, query_id = ' + str(query_id))
         elif execution:
             print('getting results, execution_id = ' + str(execution['execution_id']))
+        if verbose >= 2:
+            print('results url = ' + str(url))
 
     # get result
     response = requests.get(url, headers=headers)
@@ -659,6 +667,8 @@ async def _async_get_results(
             print('getting results, query_id = ' + str(query_id))
         elif execution:
             print('getting results, execution_id = ' + str(execution['execution_id']))
+        if verbose >= 2:
+            print('results url = ' + str(url))
 
     # get result
     async with aiohttp.ClientSession() as session:
