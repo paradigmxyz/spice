@@ -605,9 +605,17 @@ def _get_results(
                 == 'not found: No execution found for the latest version of the given query'
             ):
                 if verbose:
-                    print(
-                        'no existing execution for this query, initializing new execution'
+                    msg = 'no existing execution for query_id = {query_id}, initializing new execution'.format(
+                        query_id=str(query_id)
                     )
+                    if parameters is None or len(parameters) == 0:
+                        msg = msg + ' with no parameters'
+                    else:
+                        str_parameters = str(parameters)
+                        if len(str_parameters) > 100:
+                            str_parameters = str_parameters[:97] + '...'
+                        msg = msg + ' with parameters = ' + str_parameters
+                    print(msg)
                 return None
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
@@ -694,9 +702,17 @@ async def _async_get_results(
                 == 'not found: No execution found for the latest version of the given query'
             ):
                 if verbose:
-                    print(
-                        'no existing execution for this query, initializing new execution'
+                    msg = 'no existing execution for query_id = {query_id}, initializing new execution'.format(
+                        query_id=str(query_id)
                     )
+                    if parameters is None or len(parameters) == 0:
+                        msg = msg + ' with no parameters'
+                    else:
+                        str_parameters = str(parameters)
+                        if len(str_parameters) > 100:
+                            str_parameters = str_parameters[:97] + '...'
+                        msg = msg + ' with parameters = ' + str_parameters
+                    print(msg)
                 return None
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
