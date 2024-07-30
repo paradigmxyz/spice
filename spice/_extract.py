@@ -784,13 +784,16 @@ def _process_raw_table(
             new_dtype = None
 
         new_dtypes.append(new_dtype)
-    df = df.with_columns(
-        *[
-            pl.col(column).cast(dtype)
-            for column, dtype in zip(df.columns, new_dtypes)
-            if dtype is not None
-        ]
-    )
+
+    new_columns = []
+    for column, dtype in zip(df.columns, new_dtypes):
+        if dtype is not None:
+            if dtype == pl.Boolean:
+                new_column = pl.col(column) == 'true'
+            else:
+                new_column = pl.col(column).cast(dtype)
+            new_columns.append(new_column)
+    df = df.with_columns(*new_columns)
 
     return df
 
