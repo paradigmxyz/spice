@@ -64,7 +64,7 @@ df = await spice.async_query('https://dune.com/queries/21693')
 df = await spice.async_query('SELECT * FROM ethereum.blocks LIMIT 5')
 df = await spice.async_query(query, refresh=True)
 df = await spice.async_query(query, parameters={'network': 'ethereum'})
-execution = await spice.async_query(query, poll=False)
+execution = spice.query(query, poll=False)
 df = await spice.async_query(execution)
 ```
 
@@ -74,6 +74,7 @@ df = await spice.async_query(execution)
 - automatically handle pagination of multi-page results
 - automatically execute queries that have no existing executions, especially when using new parameter values
 - allow type overrides using the `dtypes` parameter
+- support raw dynamic querying using parameter templates in order to 1) minimize roundtrips and 2) not require a paid API plan
 
 ## API Reference
 
