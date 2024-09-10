@@ -131,7 +131,10 @@ def query(
     """
 
     # determine whether target is a query or an execution
-    query_id, execution = _determine_input_type(query_or_execution)
+    query_id, execution, parameters = _determine_input_type(
+        query_or_execution,
+        parameters,
+    )
 
     # gather arguments
     execute_kwargs: ExecuteKwargs = {
@@ -268,7 +271,10 @@ async def async_query(
     """
 
     # determine whether target is a query or an execution
-    query_id, execution = _determine_input_type(query_or_execution)
+    query_id, execution, parameters = _determine_input_type(
+        query_or_execution,
+        parameters,
+    )
 
     # gather arguments
     execute_kwargs: ExecuteKwargs = {
@@ -321,17 +327,39 @@ async def async_query(
 
 def _determine_input_type(
     query_or_execution: Query | Execution,
-) -> tuple[int | None, Execution | None]:
+    parameters: Mapping[str, Any] | None = None,
+) -> tuple[int | None, Execution | None, Mapping[str, Any] | None]:
     if isinstance(query_or_execution, (int, str)):
-        query_id = _urls.get_query_id(query_or_execution)
-        execution = None
+        if _is_sql(query_or_execution):
+            query_id = 4060379
+            execution = None
+            parameters = {'query': query_or_execution}
+        else:
+            query_id = _urls.get_query_id(query_or_execution)
+            execution = None
     elif isinstance(query_or_execution, dict) and 'execution_id' in query_or_execution:
         query_id = None
         execution = query_or_execution
     else:
         raise Exception('input must be a query id, query url, or execution id')
 
-    return query_id, execution
+    return query_id, execution, parameters
+
+
+def _is_sql(query: int | str) -> bool:
+    if isinstance(query, int):
+        return False
+    elif isinstance(query, str):
+        if query.startswith('https://') or query.startswith('api.dune.com'):
+            return False
+        else:
+            try:
+                int(query)
+                return False
+            except ValueError:
+                return True
+    else:
+        raise Exception('invalid format for query: ' + str(type(query)))
 
 
 def _get_query_latest_age(

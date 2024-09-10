@@ -38,6 +38,9 @@ df = spice.query(21693)
 # get most recent query results using query url
 df = spice.query('https://dune.com/queries/21693')
 
+# get most recent query results using raw sql
+df = spice.query('SELECT * FROM ethereum.blocks LIMIT 5')
+
 # perform new query execution and get results
 df = spice.query(query, refresh=True)
 
@@ -58,6 +61,7 @@ The async API is identical to the sync API as above, just add `async_` prefix.
 ```python
 df = await spice.async_query(21693)
 df = await spice.async_query('https://dune.com/queries/21693')
+df = await spice.async_query('SELECT * FROM ethereum.blocks LIMIT 5')
 df = await spice.async_query(query, refresh=True)
 df = await spice.async_query(query, parameters={'network': 'ethereum'})
 execution = await spice.async_query(query, poll=False)
