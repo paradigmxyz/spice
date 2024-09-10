@@ -12,13 +12,16 @@ from typing import (
     TypedDict,
     cast,
     overload,
+    TYPE_CHECKING,
 )
-from typing_extensions import Unpack
 
 import polars as pl
 
 from ._types import Execution, Performance, Query
 from . import _urls
+
+if TYPE_CHECKING:
+    from typing_extensions import Unpack
 
 
 class ExecuteKwargs(TypedDict):
