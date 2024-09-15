@@ -67,7 +67,7 @@ def query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
-) -> pl.DataFrame | Execution: ...
+) -> pl.DataFrame: ...
 
 
 @overload
@@ -89,7 +89,7 @@ def query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
-) -> pl.DataFrame | Execution: ...
+) -> Execution: ...
 
 
 def query(
@@ -599,7 +599,7 @@ def _get_results(
     else:
         dtypes = None
     if 'verbose' in data:
-        verbose = data.pop('verbose')
+        verbose: int | bool | None = data.pop('verbose')  # type: ignore
     else:
         verbose = False
     if performance is not None:
@@ -695,7 +695,7 @@ async def _async_get_results(
     else:
         dtypes = None
     if 'verbose' in data:
-        verbose = data.pop('verbose')
+        verbose: int | bool | None = data.pop('verbose')  # type: ignore
     else:
         verbose = False
     if parameters is not None:
