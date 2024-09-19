@@ -71,6 +71,7 @@ df = await spice.async_query(execution)
 ### Quality of Life
 
 `spice` contains additional quality of life features such as:
+- automatically cache results locally to save time and credits for repeated queries
 - automatically handle pagination of multi-page results
 - automatically execute queries that have no existing executions, especially when using new parameter values
 - allow type overrides using the `dtypes` parameter
@@ -118,6 +119,10 @@ def query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[pl.DataType] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -139,6 +144,10 @@ def query(
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
     - dtypes: dtypes to use in output polars dataframe
+    - cache: whether to use cache for saving or loading
+    - cache_dir: directory to use for cached data (create tmp_dir if None)
+    - save_to_cache: whether to save to cache, set false to load only
+    - load_from_cache: whether to load from cache, set false to save only
     """
     ...
 

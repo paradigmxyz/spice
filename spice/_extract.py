@@ -70,8 +70,8 @@ def query(
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
-    save_to_cache: bool | None = None,
-    load_from_cache: bool | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
 ) -> pl.DataFrame:
     ...
 
@@ -97,8 +97,8 @@ def query(
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
-    save_to_cache: bool | None = None,
-    load_from_cache: bool | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
 ) -> Execution:
     ...
 
@@ -123,8 +123,8 @@ def query(
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
-    save_to_cache: bool | None = True,
-    load_from_cache: bool | None = True,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -245,8 +245,8 @@ async def async_query(
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
-    save_to_cache: bool | None = None,
-    load_from_cache: bool | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
 ) -> pl.DataFrame:
     ...
 
@@ -272,8 +272,8 @@ async def async_query(
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
-    save_to_cache: bool | None = None,
-    load_from_cache: bool | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
 ) -> Execution:
     ...
 
@@ -298,8 +298,8 @@ async def async_query(
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
-    save_to_cache: bool | None = None,
-    load_from_cache: bool | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
