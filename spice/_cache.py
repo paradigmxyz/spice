@@ -20,7 +20,6 @@ def load_from_cache(
     result_kwargs: _extract.ResultKwargs,
     cache_dir: str | None,
 ) -> pl.DataFrame | None:
-
     # get latest execution id
     execution = _extract.get_latest_execution(execute_kwargs)
     if execution is None:
@@ -48,7 +47,6 @@ async def async_load_from_cache(
     result_kwargs: _extract.ResultKwargs,
     cache_dir: str | None,
 ) -> pl.DataFrame | None:
-
     # get latest execution
     execution = await _extract.async_get_latest_execution(execute_kwargs)
     if execution is None:
@@ -78,7 +76,6 @@ def save_to_cache(
     result_kwargs: _extract.ResultKwargs,
     cache_dir: str | None,
 ) -> None:
-
     if result_kwargs['verbose']:
         print('saving result to cache')
 
@@ -94,7 +91,9 @@ def save_to_cache(
     os.makedirs(os.path.dirname(cache_path), exist_ok=True)
 
     # save to cache
-    tmp_path = cache_path + '_tmp_' + secrets.token_hex(8)  # add for if running in parallel
+    tmp_path = (
+        cache_path + '_tmp_' + secrets.token_hex(8)
+    )  # add for if running in parallel
     df.write_parquet(tmp_path)
     shutil.move(tmp_path, cache_path)
 
@@ -105,7 +104,6 @@ def _build_cache_path(
     result_kwargs: _extract.ResultKwargs,
     cache_dir: str | None,
 ) -> str:
-
     # get parameter hash
     if result_kwargs['dtypes'] is None:
         dtypes: list[str | list[str]] | None = None

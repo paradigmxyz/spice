@@ -72,7 +72,8 @@ def query(
     cache_dir: str | None = None,
     save_to_cache: bool | None = None,
     load_from_cache: bool | None = None,
-) -> pl.DataFrame: ...
+) -> pl.DataFrame:
+    ...
 
 
 @overload
@@ -98,7 +99,8 @@ def query(
     cache_dir: str | None = None,
     save_to_cache: bool | None = None,
     load_from_cache: bool | None = None,
-) -> Execution: ...
+) -> Execution:
+    ...
 
 
 def query(
@@ -182,7 +184,9 @@ def query(
     # execute or retrieve query
     if query_id:
         if cache and load_from_cache and not refresh:
-            cache_result = _cache.load_from_cache(execute_kwargs, result_kwargs, cache_dir)
+            cache_result = _cache.load_from_cache(
+                execute_kwargs, result_kwargs, cache_dir
+            )
             if cache_result is not None:
                 return cache_result
         if max_age is not None and not refresh:
@@ -196,7 +200,9 @@ def query(
                     execution = get_latest_execution(execute_kwargs)
                     if execution is None:
                         raise Exception('could not get execution')
-                    _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+                    _cache.save_to_cache(
+                        df, execution, execute_kwargs, result_kwargs, cache_dir
+                    )
                 return df
         execution = _execute(**execute_kwargs, verbose=verbose)
 
@@ -208,7 +214,9 @@ def query(
         df = _get_results(execution, api_key, **result_kwargs)
         if df is not None:
             if cache and save_to_cache and query_id is not None:
-                _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+                _cache.save_to_cache(
+                    df, execution, execute_kwargs, result_kwargs, cache_dir
+                )
             return df
         else:
             raise Exception('no successful execution for query')
@@ -239,7 +247,8 @@ async def async_query(
     cache_dir: str | None = None,
     save_to_cache: bool | None = None,
     load_from_cache: bool | None = None,
-) -> pl.DataFrame: ...
+) -> pl.DataFrame:
+    ...
 
 
 @overload
@@ -265,7 +274,8 @@ async def async_query(
     cache_dir: str | None = None,
     save_to_cache: bool | None = None,
     load_from_cache: bool | None = None,
-) -> Execution: ...
+) -> Execution:
+    ...
 
 
 async def async_query(
@@ -349,7 +359,9 @@ async def async_query(
     # execute or retrieve query
     if query_id:
         if cache and load_from_cache and not refresh:
-            cache_result = await _cache.async_load_from_cache(execute_kwargs, result_kwargs, cache_dir)
+            cache_result = await _cache.async_load_from_cache(
+                execute_kwargs, result_kwargs, cache_dir
+            )
             if cache_result is not None:
                 return cache_result
         if max_age is not None and not refresh:
@@ -363,7 +375,9 @@ async def async_query(
                     execution = await async_get_latest_execution(execute_kwargs)
                     if execution is None:
                         raise Exception('could not get execution')
-                    _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+                    _cache.save_to_cache(
+                        df, execution, execute_kwargs, result_kwargs, cache_dir
+                    )
                 return df
         execution = await _async_execute(**execute_kwargs, verbose=verbose)
 
@@ -375,7 +389,9 @@ async def async_query(
         df = await _async_get_results(execution, api_key, **result_kwargs)
         if df is not None:
             if cache and save_to_cache and query_id is not None:
-                _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+                _cache.save_to_cache(
+                    df, execution, execute_kwargs, result_kwargs, cache_dir
+                )
             return df
         else:
             raise Exception('no successful execution for query')
@@ -482,7 +498,7 @@ def _get_query_latest_age(
 def _parse_timestamp(timestamp: str) -> int:
     import datetime
 
-    # reduce number of decimals in 
+    # reduce number of decimals in
     if len(timestamp) > 27 and timestamp[-1] == 'Z':
         timestamp = timestamp[:26] + 'Z'
 
@@ -929,9 +945,7 @@ def _poll_execution(
         response = requests.get(url, headers=headers)
         result = response.json()
         if result['is_execution_finished']:
-            execution['timestamp'] = _parse_timestamp(
-                result['execution_started_at']
-            )
+            execution['timestamp'] = _parse_timestamp(result['execution_started_at'])
             break
 
         # wait until polling interval
