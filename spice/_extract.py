@@ -18,6 +18,7 @@ from typing import (
 import polars as pl
 
 from ._types import Execution, Performance, Query
+from . import _cache
 from . import _urls
 
 if TYPE_CHECKING:
@@ -67,6 +68,10 @@ def query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool | None = None,
+    load_from_cache: bool | None = None,
 ) -> pl.DataFrame: ...
 
 
@@ -89,6 +94,10 @@ def query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool | None = None,
+    load_from_cache: bool | None = None,
 ) -> Execution: ...
 
 
@@ -110,6 +119,10 @@ def query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool | None = True,
+    load_from_cache: bool | None = True,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -131,6 +144,10 @@ def query(
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
     - dtypes: dtypes to use in output polars dataframe
+    - cache: whether to use cache for saving or loading
+    - cache_dir: directory to use for cached data (create tmp_dir if None)
+    - save_to_cache: whether to save to cache, set false to load only
+    - load_from_cache: whether to load from cache, set false to save only
     """
 
     # determine whether target is a query or an execution
@@ -164,6 +181,10 @@ def query(
 
     # execute or retrieve query
     if query_id:
+        if cache and load_from_cache and not refresh:
+            cache_result = _cache.load_from_cache(execute_kwargs, result_kwargs, cache_dir)
+            if cache_result is not None:
+                return cache_result
         if max_age is not None and not refresh:
             age = _get_query_latest_age(**execute_kwargs, verbose=verbose)  # type: ignore
             if age is None or age > max_age:
@@ -171,6 +192,11 @@ def query(
         if not refresh:
             df = _get_results(**execute_kwargs, **result_kwargs)
             if df is not None:
+                if cache and save_to_cache and query_id is not None:
+                    execution = get_latest_execution(execute_kwargs)
+                    if execution is None:
+                        raise Exception('could not get execution')
+                    _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
                 return df
         execution = _execute(**execute_kwargs, verbose=verbose)
 
@@ -181,6 +207,8 @@ def query(
         _poll_execution(execution, **poll_kwargs)
         df = _get_results(execution, api_key, **result_kwargs)
         if df is not None:
+            if cache and save_to_cache and query_id is not None:
+                _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
             return df
         else:
             raise Exception('no successful execution for query')
@@ -207,6 +235,10 @@ async def async_query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool | None = None,
+    load_from_cache: bool | None = None,
 ) -> pl.DataFrame: ...
 
 
@@ -229,6 +261,10 @@ async def async_query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool | None = None,
+    load_from_cache: bool | None = None,
 ) -> Execution: ...
 
 
@@ -250,6 +286,10 @@ async def async_query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool | None = None,
+    load_from_cache: bool | None = None,
 ) -> pl.DataFrame | Execution:
     """get results of query as dataframe
 
@@ -271,6 +311,10 @@ async def async_query(
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
     - dtypes: dtypes to use in output polars dataframe
+    - cache: whether to use cache for saving or loading
+    - cache_dir: directory to use for cached data (create tmp_dir if None)
+    - save_to_cache: whether to save to cache, set false to load only
+    - load_from_cache: whether to load from cache, set false to save only
     """
 
     # determine whether target is a query or an execution
@@ -304,6 +348,10 @@ async def async_query(
 
     # execute or retrieve query
     if query_id:
+        if cache and load_from_cache and not refresh:
+            cache_result = await _cache.async_load_from_cache(execute_kwargs, result_kwargs, cache_dir)
+            if cache_result is not None:
+                return cache_result
         if max_age is not None and not refresh:
             age = await _async_get_query_latest_age(**execute_kwargs, verbose=verbose)  # type: ignore
             if age is None or age > max_age:
@@ -311,6 +359,11 @@ async def async_query(
         if not refresh:
             df = await _async_get_results(**execute_kwargs, **result_kwargs)
             if df is not None:
+                if cache and save_to_cache and query_id is not None:
+                    execution = await async_get_latest_execution(execute_kwargs)
+                    if execution is None:
+                        raise Exception('could not get execution')
+                    _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
                 return df
         execution = await _async_execute(**execute_kwargs, verbose=verbose)
 
@@ -321,6 +374,8 @@ async def async_query(
         await _async_poll_execution(execution, **poll_kwargs)
         df = await _async_get_results(execution, api_key, **result_kwargs)
         if df is not None:
+            if cache and save_to_cache and query_id is not None:
+                _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
             return df
         else:
             raise Exception('no successful execution for query')
@@ -411,14 +466,7 @@ def _get_query_latest_age(
     # process result
     if 'execution_started_at' in result:
         now = datetime.datetime.now(datetime.timezone.utc).timestamp()
-        started = (
-            datetime.datetime.strptime(
-                result['execution_started_at'],
-                '%Y-%m-%dT%H:%M:%S.%fZ',
-            )
-            .replace(tzinfo=datetime.timezone.utc)
-            .timestamp()
-        )
+        started = _parse_timestamp(result['execution_started_at'])
         age = now - started
 
         if verbose:
@@ -429,6 +477,21 @@ def _get_query_latest_age(
         if verbose:
             print('no age for query, because no previous executions exist')
         return None
+
+
+def _parse_timestamp(timestamp: str) -> int:
+    import datetime
+
+    # reduce number of decimals in 
+    if len(timestamp) > 27 and timestamp[-1] == 'Z':
+        timestamp = timestamp[:26] + 'Z'
+
+    timestamp_float = (
+        datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        .replace(tzinfo=datetime.timezone.utc)
+        .timestamp()
+    )
+    return int(timestamp_float)
 
 
 async def _async_get_query_latest_age(
@@ -478,14 +541,7 @@ async def _async_get_query_latest_age(
     # process result
     if 'execution_started_at' in result:
         now = datetime.datetime.now(datetime.timezone.utc).timestamp()
-        started = (
-            datetime.datetime.strptime(
-                result['execution_started_at'],
-                '%Y-%m-%dT%H:%M:%S.%fZ',
-            )
-            .replace(tzinfo=datetime.timezone.utc)
-            .timestamp()
-        )
+        started = _parse_timestamp(result['execution_started_at'])
         age = now - started
 
         if verbose:
@@ -873,6 +929,9 @@ def _poll_execution(
         response = requests.get(url, headers=headers)
         result = response.json()
         if result['is_execution_finished']:
+            execution['timestamp'] = _parse_timestamp(
+                result['execution_started_at']
+            )
             break
 
         # wait until polling interval
@@ -922,6 +981,9 @@ async def _async_poll_execution(
             async with session.get(url, headers=headers) as response:
                 result = await response.json()
                 if result['is_execution_finished']:
+                    execution['timestamp'] = _parse_timestamp(
+                        result['execution_started_at']
+                    )
                     break
 
             # wait until polling interval
@@ -932,3 +994,97 @@ async def _async_poll_execution(
     # check for errors
     if result['state'] == 'QUERY_STATE_FAILED':
         raise Exception('QUERY FAILED execution_id={}'.format(execution_id))
+
+
+def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
+    import json
+    import requests
+
+    query_id = execute_kwargs['query_id']
+    api_key = execute_kwargs['api_key']
+    parameters = execute_kwargs['parameters']
+    if query_id is None:
+        raise Exception('query_id required for get_latest_execution')
+
+    # process inputs
+    if api_key is None:
+        api_key = _urls.get_api_key()
+    headers = {'X-Dune-API-Key': api_key}
+    data = {}
+    if parameters is not None:
+        data['query_parameters'] = parameters
+    url = _urls.get_query_results_url(query_id, parameters=data, csv=False)
+
+    # perform request
+    response = requests.get(url, headers=headers)
+
+    # check if result is error
+    result = response.json()
+    try:
+        if 'error' in result:
+            if (
+                result['error']
+                == 'not found: No execution found for the latest version of the given query'
+            ):
+                return None
+            raise Exception(result['error'])
+    except json.JSONDecodeError:
+        pass
+
+    # process result
+    if not result['is_execution_finished']:
+        return None
+    execution: Execution = {'execution_id': result['execution_id']}
+    if 'execution_started_at' in result:
+        execution['timestamp'] = int(_parse_timestamp(result['execution_started_at']))
+    return execution
+
+
+async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
+    import json
+    import aiohttp
+
+    query_id = execute_kwargs['query_id']
+    api_key = execute_kwargs['api_key']
+    parameters_raw = execute_kwargs['parameters']
+    if parameters_raw is None:
+        parameters: Mapping[str, Any] | None = None
+    else:
+        parameters = dict(parameters_raw)
+        parameters['limit'] = 0
+    if query_id is None:
+        raise Exception('query_id required for async_get_latest_execution')
+
+    # process inputs
+    if api_key is None:
+        api_key = _urls.get_api_key()
+    headers = {'X-Dune-API-Key': api_key}
+    data = {}
+    if parameters is not None:
+        data['query_parameters'] = parameters
+    url = _urls.get_query_results_url(query_id, parameters=data, csv=False)
+
+    # perform request
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            result: Mapping[str, Any] = await response.json()
+
+    # check if result is error
+    try:
+        if 'error' in result:
+            if (
+                result['error']
+                == 'not found: No execution found for the latest version of the given query'
+            ):
+                return None
+            raise Exception(result['error'])
+    except json.JSONDecodeError:
+        pass
+
+    # process result
+    if not result['is_execution_finished']:
+        return None
+    execution: Execution = {'execution_id': result['execution_id']}
+    if 'execution_started_at' in result:
+        execution['timestamp'] = int(_parse_timestamp(result['execution_started_at']))
+    return execution
