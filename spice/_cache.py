@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import hashlib
-import json
 import os
-import secrets
-import shutil
-
-import polars as pl
+import typing
 
 from . import _extract
-from ._types import Execution
+
+if typing.TYPE_CHECKING:
+    import polars as pl
+    from ._types import Execution
 
 
 cache_template = '{query_id}__{execution_id}__{parameter_hash}__{timestamp}.parquet'
@@ -35,6 +33,8 @@ def load_from_cache(
 
     # load cache result
     if os.path.exists(cache_path):
+        import polars as pl
+
         if result_kwargs['verbose']:
             print('loading result from cache')
         return pl.read_parquet(cache_path)
@@ -62,6 +62,8 @@ async def async_load_from_cache(
 
     # load cache result
     if os.path.exists(cache_path):
+        import polars as pl
+
         if result_kwargs['verbose']:
             print('loading result from cache')
         return pl.read_parquet(cache_path)
@@ -76,6 +78,9 @@ def save_to_cache(
     result_kwargs: _extract.ResultKwargs,
     cache_dir: str | None,
 ) -> None:
+    import secrets
+    import shutil
+
     if result_kwargs['verbose']:
         print('saving result to cache')
 
@@ -104,6 +109,9 @@ def _build_cache_path(
     result_kwargs: _extract.ResultKwargs,
     cache_dir: str | None,
 ) -> str:
+    import hashlib
+    import json
+
     # get parameter hash
     if result_kwargs['dtypes'] is None:
         dtypes: list[str | list[str]] | None = None

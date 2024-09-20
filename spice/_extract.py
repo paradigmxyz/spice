@@ -1,52 +1,32 @@
 from __future__ import annotations
 
-import asyncio
 import io
 import time
-from typing import (
-    Any,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    TypedDict,
-    cast,
-    overload,
-    TYPE_CHECKING,
-)
+from typing import overload, TYPE_CHECKING
 
-import polars as pl
-
-from ._types import Execution, Performance, Query
 from . import _cache
 from . import _urls
 
 if TYPE_CHECKING:
+    from typing import (
+        Any,
+        Literal,
+        Mapping,
+        Optional,
+        Sequence,
+    )
     from typing_extensions import Unpack
 
+    import polars as pl
 
-class ExecuteKwargs(TypedDict):
-    query_id: int | None
-    api_key: str | None
-    parameters: Mapping[str, Any] | None
-    performance: Performance
-
-
-class PollKwargs(TypedDict):
-    api_key: str | None
-    poll_interval: float
-    verbose: bool
-
-
-class ResultKwargs(TypedDict):
-    limit: int | None
-    offset: int | None
-    sample_count: int | None
-    sort_by: str | None
-    columns: Sequence[str] | None
-    extras: Mapping[str, Any] | None
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None
-    verbose: bool
+    from ._types import (
+        Execution,
+        Performance,
+        Query,
+        ExecuteKwargs,
+        PollKwargs,
+        ResultKwargs,
+    )
 
 
 @overload
@@ -605,7 +585,7 @@ def _execute(
     if 'error' in result:
         raise Exception(result['error'])
     else:
-        return cast(Execution, result)
+        return result  # type: ignore
 
 
 async def _async_execute(
@@ -646,7 +626,7 @@ async def _async_execute(
     if 'error' in result:
         raise Exception(result['error'])
     else:
-        return cast(Execution, result)
+        return result  # type: ignore
 
 
 def _get_results(
@@ -667,7 +647,7 @@ def _get_results(
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
     if 'dtypes' in data:
-        dtypes = cast(Optional[Sequence[type[pl.DataType]]], data.pop('dtypes'))
+        dtypes: Optional[Sequence[type[pl.DataType]]] = data.pop('dtypes')  # type: ignore
     else:
         dtypes = None
     if 'verbose' in data:
@@ -729,6 +709,8 @@ def _get_results(
     # get all pages
     limit = result_kwargs.get('limit')
     if limit is not None:
+        import polars as pl
+
         n_rows = len(df)
         pages = []
         while 'x-dune-next-uri' in response.headers and n_rows < limit:
@@ -763,7 +745,7 @@ async def _async_get_results(
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
     if 'dtypes' in data:
-        dtypes = cast(Optional[Sequence[type[pl.DataType]]], data.pop('dtypes'))
+        dtypes: Optional[Sequence[type[pl.DataType]]] = data.pop('dtypes')  # type: ignore
     else:
         dtypes = None
     if 'verbose' in data:
@@ -825,6 +807,8 @@ async def _async_get_results(
     # get all pages
     limit = result_kwargs.get('limit')
     if limit is not None:
+        import polars as pl
+
         n_rows = len(df)
         pages = []
         async with aiohttp.ClientSession() as session:
@@ -851,6 +835,8 @@ def _process_raw_table(
     | Mapping[str, type[pl.DataType] | None]
     | None,
 ) -> pl.DataFrame:
+    import polars as pl
+
     # convert from map to sequence
     first_line = raw_csv.split('\n', maxsplit=1)[0]
     column_order = first_line.split(',')
@@ -902,6 +888,8 @@ def _process_raw_table(
 
 
 def infer_dtype(s: pl.Series) -> pl.DataType:
+    import polars as pl
+
     try:
         as_str = pl.DataFrame(s).write_csv(None)
         return pl.read_csv(io.StringIO(as_str))[s.name].dtype
@@ -1003,6 +991,8 @@ async def _async_poll_execution(
             # wait until polling interval
             t_wait = time.time() - t_poll
             if t_wait < poll_interval:
+                import asyncio
+
                 await asyncio.sleep(poll_interval - t_wait)
 
     # check for errors
@@ -1027,6 +1017,7 @@ def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
     data = {}
     if parameters is not None:
         data['query_parameters'] = parameters
+    data['limit'] = 0
     url = _urls.get_query_results_url(query_id, parameters=data, csv=False)
 
     # perform request
@@ -1060,12 +1051,7 @@ async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution
 
     query_id = execute_kwargs['query_id']
     api_key = execute_kwargs['api_key']
-    parameters_raw = execute_kwargs['parameters']
-    if parameters_raw is None:
-        parameters: Mapping[str, Any] | None = None
-    else:
-        parameters = dict(parameters_raw)
-        parameters['limit'] = 0
+    parameters = execute_kwargs['parameters']
     if query_id is None:
         raise Exception('query_id required for async_get_latest_execution')
 
@@ -1076,6 +1062,7 @@ async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution
     data = {}
     if parameters is not None:
         data['query_parameters'] = parameters
+    data['limit'] = 0
     url = _urls.get_query_results_url(query_id, parameters=data, csv=False)
 
     # perform request
