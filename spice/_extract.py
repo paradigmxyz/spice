@@ -131,7 +131,7 @@ def query(
     # Parameters
     - query: query or execution to retrieve results of
     - verbose: whether to print verbose info
-    - refresh: trigger a new execution, or just use most recent execution
+    - refresh: trigger a new execution instead of using most recent execution
     - max_age: max age of last execution in seconds, or trigger a new execution
     - parameters: dict of query parameters
     - api_key: dune api key, otherwise use DUNE_API_KEY env var
@@ -935,10 +935,10 @@ def _poll_execution(
         # print summary
         if verbose:
             print(
-                'polling results, execution_id = '
+                'waiting for results, execution_id = '
                 + str(execution['execution_id'])
                 + ', t = '
-                + str(t_poll - t_start)
+                + '%.02f' % (t_poll - t_start)
             )
 
         # poll
@@ -985,7 +985,7 @@ async def _async_poll_execution(
             # print summary
             if verbose:
                 print(
-                    'polling results, execution_id = '
+                    'waiting for results, execution_id = '
                     + str(execution['execution_id'])
                     + ', t = '
                     + str(t_poll - t_start)
