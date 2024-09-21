@@ -31,6 +31,8 @@ dependencies = [
     "polars >= 1.0",
     "requests >= 2.16",
     "aiohttp >= 3.9.5",
+    "rich >= 13.3.3",
+    "rich-argparse >= 1.5.2",
 ]
 
 [project.urls]
@@ -59,6 +61,9 @@ files = ["spice"]
 testpaths = [
     "tests",
 ]
+
+[project.scripts]
+spice = "spice._cli:run_cli"
 
 [tool.ruff.format]
 quote-style = "single"

@@ -30,7 +30,7 @@ class PollKwargs(TypedDict):
     verbose: bool
 
 
-class ResultKwargs(TypedDict):
+class RetrievalKwargs(TypedDict):
     limit: int | None
     offset: int | None
     sample_count: int | None
@@ -39,3 +39,12 @@ class ResultKwargs(TypedDict):
     extras: Mapping[str, Any] | None
     dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None
     verbose: bool
+
+
+class OutputKwargs(TypedDict):
+    execute_kwargs: ExecuteKwargs
+    result_kwargs: RetrievalKwargs
+    cache: bool
+    save_to_cache: bool
+    cache_dir: str | None
+    include_execution: bool

@@ -25,35 +25,9 @@ if TYPE_CHECKING:
         Query,
         ExecuteKwargs,
         PollKwargs,
-        ResultKwargs,
+        RetrievalKwargs,
+        OutputKwargs,
     )
-
-
-@overload
-def query(
-    query_or_execution: Query | Execution,
-    *,
-    verbose: bool = True,
-    refresh: bool = False,
-    max_age: int | float | None = None,
-    parameters: Mapping[str, Any] | None = None,
-    api_key: str | None = None,
-    performance: Performance = 'medium',
-    poll: Literal[True] = True,
-    poll_interval: float = 1.0,
-    limit: int | None = None,
-    offset: int | None = None,
-    sample_count: int | None = None,
-    sort_by: str | None = None,
-    columns: Sequence[str] | None = None,
-    extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
-    cache: bool = True,
-    cache_dir: str | None = None,
-    save_to_cache: bool = True,
-    load_from_cache: bool = True,
-) -> pl.DataFrame:
-    ...
 
 
 @overload
@@ -79,7 +53,64 @@ def query(
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
+    include_execution: bool = False,
 ) -> Execution:
+    ...
+
+
+@overload
+def query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[True] = True,
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
+    include_execution: Literal[False] = False,
+) -> pl.DataFrame:
+    ...
+
+
+@overload
+def query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[True] = True,
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
+    include_execution: Literal[True],
+) -> tuple[pl.DataFrame, Execution]:
     ...
 
 
@@ -105,7 +136,8 @@ def query(
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
-) -> pl.DataFrame | Execution:
+    include_execution: bool = False,
+) -> pl.DataFrame | Execution | tuple[pl.DataFrame, Execution]:
     """get results of query as dataframe
 
     # Parameters
@@ -130,6 +162,7 @@ def query(
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only
     - load_from_cache: whether to load from cache, set false to save only
+    - include_execution: return Execution metadata alongside query result
     """
 
     # determine whether target is a query or an execution
@@ -150,7 +183,7 @@ def query(
         'api_key': api_key,
         'verbose': verbose,
     }
-    result_kwargs: ResultKwargs = {
+    result_kwargs: RetrievalKwargs = {
         'limit': limit,
         'offset': offset,
         'sample_count': sample_count,
@@ -160,15 +193,25 @@ def query(
         'dtypes': dtypes,
         'verbose': verbose,
     }
+    output_kwargs: OutputKwargs = {
+        'execute_kwargs': execute_kwargs,
+        'result_kwargs': result_kwargs,
+        'cache': cache,
+        'save_to_cache': save_to_cache,
+        'cache_dir': cache_dir,
+        'include_execution': include_execution,
+    }
 
     # execute or retrieve query
     if query_id:
         if cache and load_from_cache and not refresh:
-            cache_result = _cache.load_from_cache(
-                execute_kwargs, result_kwargs, cache_dir
+            cache_result, cache_execution = _cache.load_from_cache(
+                execute_kwargs, result_kwargs, output_kwargs
             )
             if cache_result is not None:
                 return cache_result
+            if execution is None and cache_execution is not None:
+                execution = cache_execution
         if max_age is not None and not refresh:
             age = _get_query_latest_age(**execute_kwargs, verbose=verbose)  # type: ignore
             if age is None or age > max_age:
@@ -176,14 +219,7 @@ def query(
         if not refresh:
             df = _get_results(**execute_kwargs, **result_kwargs)
             if df is not None:
-                if cache and save_to_cache and query_id is not None:
-                    execution = get_latest_execution(execute_kwargs)
-                    if execution is None:
-                        raise Exception('could not get execution')
-                    _cache.save_to_cache(
-                        df, execution, execute_kwargs, result_kwargs, cache_dir
-                    )
-                return df
+                return _process_result(df, execution, **output_kwargs)
         execution = _execute(**execute_kwargs, verbose=verbose)
 
     # await execution completion
@@ -193,42 +229,11 @@ def query(
         _poll_execution(execution, **poll_kwargs)
         df = _get_results(execution, api_key, **result_kwargs)
         if df is not None:
-            if cache and save_to_cache and query_id is not None:
-                _cache.save_to_cache(
-                    df, execution, execute_kwargs, result_kwargs, cache_dir
-                )
-            return df
+            return _process_result(df, execution, **output_kwargs)
         else:
             raise Exception('no successful execution for query')
     else:
         return execution
-
-
-@overload
-async def async_query(
-    query_or_execution: Query | Execution,
-    *,
-    verbose: bool = True,
-    refresh: bool = False,
-    max_age: int | float | None = None,
-    parameters: Mapping[str, Any] | None = None,
-    api_key: str | None = None,
-    performance: Performance = 'medium',
-    poll: Literal[True] = True,
-    poll_interval: float = 1.0,
-    limit: int | None = None,
-    offset: int | None = None,
-    sample_count: int | None = None,
-    sort_by: str | None = None,
-    columns: Sequence[str] | None = None,
-    extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
-    cache: bool = True,
-    cache_dir: str | None = None,
-    save_to_cache: bool = True,
-    load_from_cache: bool = True,
-) -> pl.DataFrame:
-    ...
 
 
 @overload
@@ -254,7 +259,64 @@ async def async_query(
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
+    include_execution: bool = False,
 ) -> Execution:
+    ...
+
+
+@overload
+async def async_query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[True] = True,
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
+    include_execution: Literal[False] = False,
+) -> pl.DataFrame:
+    ...
+
+
+@overload
+async def async_query(
+    query_or_execution: Query | Execution,
+    *,
+    verbose: bool = True,
+    refresh: bool = False,
+    max_age: int | float | None = None,
+    parameters: Mapping[str, Any] | None = None,
+    api_key: str | None = None,
+    performance: Performance = 'medium',
+    poll: Literal[True] = True,
+    poll_interval: float = 1.0,
+    limit: int | None = None,
+    offset: int | None = None,
+    sample_count: int | None = None,
+    sort_by: str | None = None,
+    columns: Sequence[str] | None = None,
+    extras: Mapping[str, Any] | None = None,
+    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    cache: bool = True,
+    cache_dir: str | None = None,
+    save_to_cache: bool = True,
+    load_from_cache: bool = True,
+    include_execution: Literal[True],
+) -> tuple[pl.DataFrame, Execution]:
     ...
 
 
@@ -280,7 +342,8 @@ async def async_query(
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
-) -> pl.DataFrame | Execution:
+    include_execution: bool = False,
+) -> pl.DataFrame | Execution | tuple[pl.DataFrame, Execution]:
     """get results of query as dataframe
 
     ## Parameters
@@ -305,6 +368,7 @@ async def async_query(
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only
     - load_from_cache: whether to load from cache, set false to save only
+    - include_execution: return Execution metadata alongside query result
     """
 
     # determine whether target is a query or an execution
@@ -325,7 +389,7 @@ async def async_query(
         'api_key': api_key,
         'verbose': verbose,
     }
-    result_kwargs: ResultKwargs = {
+    result_kwargs: RetrievalKwargs = {
         'limit': limit,
         'offset': offset,
         'sample_count': sample_count,
@@ -335,15 +399,25 @@ async def async_query(
         'dtypes': dtypes,
         'verbose': verbose,
     }
+    output_kwargs: OutputKwargs = {
+        'execute_kwargs': execute_kwargs,
+        'result_kwargs': result_kwargs,
+        'cache': cache,
+        'save_to_cache': save_to_cache,
+        'cache_dir': cache_dir,
+        'include_execution': include_execution,
+    }
 
     # execute or retrieve query
     if query_id:
         if cache and load_from_cache and not refresh:
-            cache_result = await _cache.async_load_from_cache(
-                execute_kwargs, result_kwargs, cache_dir
+            cache_result, cache_execution = await _cache.async_load_from_cache(
+                execute_kwargs, result_kwargs, output_kwargs
             )
             if cache_result is not None:
                 return cache_result
+            if execution is None and cache_execution is not None:
+                execution = cache_execution
         if max_age is not None and not refresh:
             age = await _async_get_query_latest_age(**execute_kwargs, verbose=verbose)  # type: ignore
             if age is None or age > max_age:
@@ -351,14 +425,7 @@ async def async_query(
         if not refresh:
             df = await _async_get_results(**execute_kwargs, **result_kwargs)
             if df is not None:
-                if cache and save_to_cache and query_id is not None:
-                    execution = await async_get_latest_execution(execute_kwargs)
-                    if execution is None:
-                        raise Exception('could not get execution')
-                    _cache.save_to_cache(
-                        df, execution, execute_kwargs, result_kwargs, cache_dir
-                    )
-                return df
+                return await _async_process_result(df, execution, **output_kwargs)
         execution = await _async_execute(**execute_kwargs, verbose=verbose)
 
     # await execution completion
@@ -368,15 +435,65 @@ async def async_query(
         await _async_poll_execution(execution, **poll_kwargs)
         df = await _async_get_results(execution, api_key, **result_kwargs)
         if df is not None:
-            if cache and save_to_cache and query_id is not None:
-                _cache.save_to_cache(
-                    df, execution, execute_kwargs, result_kwargs, cache_dir
-                )
-            return df
+            return await _async_process_result(df, execution, **output_kwargs)
         else:
             raise Exception('no successful execution for query')
     else:
         return execution
+
+
+def _process_result(
+    df: pl.DataFrame,
+    execution: Execution | None,
+    execute_kwargs: ExecuteKwargs,
+    result_kwargs: RetrievalKwargs,
+    cache: bool,
+    save_to_cache: bool,
+    cache_dir: str | None,
+    include_execution: bool,
+) -> pl.DataFrame | tuple[pl.DataFrame, Execution]:
+    if cache and save_to_cache and execute_kwargs['query_id'] is not None:
+        if execution is None:
+            execution = get_latest_execution(execute_kwargs)
+            if execution is None:
+                raise Exception('could not get execution')
+        _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+
+    if include_execution:
+        if execution is None:
+            execution = get_latest_execution(execute_kwargs)
+            if execution is None:
+                raise Exception('could not get execution')
+        return df, execution
+    else:
+        return df
+
+
+async def _async_process_result(
+    df: pl.DataFrame,
+    execution: Execution | None,
+    execute_kwargs: ExecuteKwargs,
+    result_kwargs: RetrievalKwargs,
+    cache: bool,
+    save_to_cache: bool,
+    cache_dir: str | None,
+    include_execution: bool,
+) -> pl.DataFrame | tuple[pl.DataFrame, Execution]:
+    if cache and save_to_cache and execute_kwargs['query_id'] is not None:
+        if execution is None:
+            execution = await async_get_latest_execution(execute_kwargs)
+            if execution is None:
+                raise Exception('could not get execution')
+        _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+
+    if include_execution:
+        if execution is None:
+            execution = await async_get_latest_execution(execute_kwargs)
+            if execution is None:
+                raise Exception('could not get execution')
+        return df, execution
+    else:
+        return df
 
 
 def _determine_input_type(
@@ -636,7 +753,7 @@ def _get_results(
     query_id: int | None = None,
     parameters: Mapping[str, Any] | None = None,
     performance: Performance | None = None,
-    **result_kwargs: Unpack[ResultKwargs],
+    **result_kwargs: Unpack[RetrievalKwargs],
 ) -> pl.DataFrame | None:
     import json
     import requests
@@ -734,7 +851,7 @@ async def _async_get_results(
     query_id: int | None = None,
     parameters: Mapping[str, Any] | None = None,
     performance: Performance | None = None,
-    **result_kwargs: Unpack[ResultKwargs],
+    **result_kwargs: Unpack[RetrievalKwargs],
 ) -> pl.DataFrame | None:
     import json
     import aiohttp
@@ -1014,7 +1131,7 @@ def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
     if api_key is None:
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
-    data = {}
+    data: dict[str, Any] = {}
     if parameters is not None:
         data['query_parameters'] = parameters
     data['limit'] = 0
@@ -1059,7 +1176,7 @@ async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution
     if api_key is None:
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
-    data = {}
+    data: dict[str, Any] = {}
     if parameters is not None:
         data['query_parameters'] = parameters
     data['limit'] = 0

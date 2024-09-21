@@ -15,20 +15,20 @@ cache_template = '{query_id}__{execution_id}__{parameter_hash}__{timestamp}.parq
 
 def load_from_cache(
     execute_kwargs: _extract.ExecuteKwargs,
-    result_kwargs: _extract.ResultKwargs,
-    cache_dir: str | None,
-) -> pl.DataFrame | None:
+    result_kwargs: _extract.RetrievalKwargs,
+    output_kwargs: _extract.OutputKwargs,
+) -> tuple[pl.DataFrame | tuple[pl.DataFrame, Execution] | None, Execution | None]:
     # get latest execution id
     execution = _extract.get_latest_execution(execute_kwargs)
     if execution is None:
-        return None
+        return None, None
 
     # build cache path
     cache_path = _build_cache_path(
         execution=execution,
         execute_kwargs=execute_kwargs,
         result_kwargs=result_kwargs,
-        cache_dir=cache_dir,
+        cache_dir=output_kwargs['cache_dir'],
     )
 
     # load cache result
@@ -37,27 +37,31 @@ def load_from_cache(
 
         if result_kwargs['verbose']:
             print('loading result from cache')
-        return pl.read_parquet(cache_path)
+        df = pl.read_parquet(cache_path)
+        if output_kwargs['include_execution']:
+            return (df, execution), execution
+        else:
+            return df, execution
     else:
-        return None
+        return None, execution
 
 
 async def async_load_from_cache(
     execute_kwargs: _extract.ExecuteKwargs,
-    result_kwargs: _extract.ResultKwargs,
-    cache_dir: str | None,
-) -> pl.DataFrame | None:
+    result_kwargs: _extract.RetrievalKwargs,
+    output_kwargs: _extract.OutputKwargs,
+) -> tuple[pl.DataFrame | tuple[pl.DataFrame, Execution] | None, Execution | None]:
     # get latest execution
     execution = await _extract.async_get_latest_execution(execute_kwargs)
     if execution is None:
-        return None
+        return None, None
 
     # build cache path
     cache_path = _build_cache_path(
         execution=execution,
         execute_kwargs=execute_kwargs,
         result_kwargs=result_kwargs,
-        cache_dir=cache_dir,
+        cache_dir=output_kwargs['cache_dir'],
     )
 
     # load cache result
@@ -66,16 +70,20 @@ async def async_load_from_cache(
 
         if result_kwargs['verbose']:
             print('loading result from cache')
-        return pl.read_parquet(cache_path)
+        df = pl.read_parquet(cache_path)
+        if output_kwargs['include_execution']:
+            return (df, execution), execution
+        else:
+            return df, execution
     else:
-        return None
+        return None, execution
 
 
 def save_to_cache(
     df: pl.DataFrame,
     execution: Execution,
     execute_kwargs: _extract.ExecuteKwargs,
-    result_kwargs: _extract.ResultKwargs,
+    result_kwargs: _extract.RetrievalKwargs,
     cache_dir: str | None,
 ) -> None:
     import secrets
@@ -106,7 +114,7 @@ def save_to_cache(
 def _build_cache_path(
     execution: Execution,
     execute_kwargs: _extract.ExecuteKwargs,
-    result_kwargs: _extract.ResultKwargs,
+    result_kwargs: _extract.RetrievalKwargs,
     cache_dir: str | None,
 ) -> str:
     import hashlib

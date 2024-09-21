@@ -1,9 +1,10 @@
 # spice 🌶️
 
-Simple python client for extracting data from the [Dune Analytics API](https://docs.dune.com/api-reference/overview/introduction)
+Simple client for extracting data from the [Dune Analytics API](https://docs.dune.com/api-reference/overview/introduction)
 
 Goals of `spice`:
-- simple, no OOP, entire api is just one function
+- use as a python library or as a CLI tool
+- simple, no OOP, entire API is just one function
 - support both sync and async workflows
 - tight integration with [polars](https://github.com/pola-rs/polars)
 
@@ -14,7 +15,11 @@ To discuss `spice`, head to the [Paradigm Data Tools](https://t.me/paradigm_data
 2. [Examples](#examples)
     1. [Sync Workflow](#sync-workflow)
     2. [Async Workflow](#async-workflow)
+    3. [Command Line Workflow](#command-line-workflow)
+    4. [Quality of Life](#quality-of-life)
 3. [API Reference](#api-reference)
+    1. [Python Reference](#python-reference)
+    2. [Command Line Reference](#command-line-reference)
 4. [FAQ](#faq)
 
 ## Installation
@@ -68,6 +73,18 @@ execution = spice.query(query, poll=False)
 df = await spice.async_query(execution)
 ```
 
+### Command Line Workflow
+
+Running the `spice` CLI will 1) extract the given query, 2) preview the contents, 3) and save it to a file. Each step of this process can be customized using the CLI options.
+
+```bash
+spice 21693
+spice https://dune.com/queries/21693
+spice "SELECT * FROM ethereum.blocks LIMIT 5"
+spice $QUERY --refresh
+spice $QUERY --parameters network=ethereum
+```
+
 ### Quality of Life
 
 `spice` contains additional quality of life features such as:
@@ -79,26 +96,9 @@ df = await spice.async_query(execution)
 
 ## API Reference
 
-#### Types
+#### Python Reference
 
-```python
-from typing import Any, Literal, Mapping, Sequence, TypedDict
-import polars as pl
-
-# query is an int id or query url
-Query = int | str
-
-# execution performance level
-Performance = Literal['medium', 'large']
-
-# execution
-class Execution(TypedDict):
-    execution_id: str
-```
-
-#### Functions
-
-These functions are accessed as `spice.query()` and `spice.aysnc_query()`.
+These python functions are accessed as `spice.query()` and `spice.aysnc_query()`.
 
 ```python
 def query(
@@ -148,6 +148,7 @@ def query(
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only
     - load_from_cache: whether to load from cache, set false to save only
+    - include_execution: return Execution metadata alongside query result
     """
     ...
 
@@ -163,10 +164,12 @@ async def async_query(
     ...
 ```
 
+#### Command Line Reference
+
 ## FAQ
 
 #### How do I set my Dune API key?
-`spice` looks for a Dune api key in the `DUNE_API_KEY` environment variable.
+`spice` looks for a Dune API key in the `DUNE_API_KEY` environment variable.
 
 #### Which endpoints does this package support?
 `spice` interacts only with Dune's SQL-related API endpoints, documented [here](https://docs.dune.com/api-reference/executions/execution-object).
