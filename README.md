@@ -98,7 +98,7 @@ spice $QUERY --parameters network=ethereum
 
 #### Python Reference
 
-These python functions are accessed as `spice.query()` and `spice.aysnc_query()`.
+These python functions are accessed as `spice.query()` and `spice.async_query()`.
 
 ```python
 def query(
