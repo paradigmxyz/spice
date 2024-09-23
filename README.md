@@ -166,6 +166,9 @@ async def async_query(
 
 #### Command Line Reference
 
+![image](https://github.com/user-attachments/assets/aca9c2a1-1487-461f-ab2f-8e7a4930b71a)
+
+
 ## FAQ
 
 #### How do I set my Dune API key?
