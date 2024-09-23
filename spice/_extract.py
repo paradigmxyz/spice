@@ -4,6 +4,7 @@ import io
 import time
 from typing import overload, TYPE_CHECKING
 
+import spice
 from . import _cache
 from . import _urls
 
@@ -548,7 +549,7 @@ def _get_query_latest_age(
     # process inputs
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data = {}
     if parameters is not None:
         data['query_parameters'] = parameters
@@ -622,7 +623,7 @@ async def _async_get_query_latest_age(
     # process inputs
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data = {}
     if parameters is not None:
         data['query_parameters'] = parameters
@@ -683,7 +684,7 @@ def _execute(
     if query_id is None:
         raise Exception('must specify query to execute')
     url = _urls.get_query_execute_url(query_id)
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data = {'query_parameters': parameters, 'performance': performance}
     data = {k: v for k, v in data.items() if v is not None}
 
@@ -721,7 +722,7 @@ async def _async_execute(
     if query_id is None:
         raise Exception('must specify query to execute')
     url = _urls.get_query_execute_url(query_id)
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data = {'query_parameters': parameters, 'performance': performance}
     data = {k: v for k, v in data.items() if v is not None}
 
@@ -761,7 +762,7 @@ def _get_results(
     # process inputs
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data = dict(result_kwargs.items())
     if 'types' in data:
         types: Optional[Sequence[type[pl.DataType]]] = data.pop('types')  # type: ignore
@@ -859,7 +860,7 @@ async def _async_get_results(
     # process inputs
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data = dict(result_kwargs.items())
     if 'types' in data:
         types: Optional[Sequence[type[pl.DataType]]] = data.pop('types')  # type: ignore
@@ -1028,7 +1029,7 @@ def _poll_execution(
     execution_id = execution['execution_id']
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
 
     # print summary
     t_start = time.time()
@@ -1077,7 +1078,7 @@ async def _async_poll_execution(
     execution_id = execution['execution_id']
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
 
     # print summary
     t_start = time.time()
@@ -1130,7 +1131,7 @@ def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
     # process inputs
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data: dict[str, Any] = {}
     if parameters is not None:
         data['query_parameters'] = parameters
@@ -1175,7 +1176,7 @@ async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution
     # process inputs
     if api_key is None:
         api_key = _urls.get_api_key()
-    headers = {'X-Dune-API-Key': api_key}
+    headers = {'X-Dune-API-Key': api_key, 'User-Agent': get_user_agent()}
     data: dict[str, Any] = {}
     if parameters is not None:
         data['query_parameters'] = parameters
@@ -1206,3 +1207,7 @@ async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution
     if 'execution_started_at' in result:
         execution['timestamp'] = int(_parse_timestamp(result['execution_started_at']))
     return execution
+
+
+def get_user_agent() -> str:
+    return 'spice/' + spice.__version__
