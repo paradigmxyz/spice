@@ -67,11 +67,11 @@ async def test_query_columns_async(cache: bool):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('cache', [False, True, True])
-@pytest.mark.xdist_group(name='test_query_dtypes_async')
-async def test_query_dtypes_async(cache: bool):
-    dtypes = [pl.String, pl.Datetime, pl.Float32]
-    df = await spice.async_query(4388, dtypes=dtypes, cache=cache)
-    assert list(df.schema.values()) == dtypes
+@pytest.mark.xdist_group(name='test_query_types_async')
+async def test_query_types_async(cache: bool):
+    types = [pl.String, pl.Datetime, pl.Float32]
+    df = await spice.async_query(4388, types=types, cache=cache)
+    assert list(df.schema.values()) == types
 
 
 @pytest.mark.asyncio

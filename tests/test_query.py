@@ -106,13 +106,13 @@ def test_query_columns(cache: bool):
 
 
 @pytest.mark.parametrize('cache', [False, True, True])
-@pytest.mark.xdist_group(name='test_query_dtypes')
-def test_query_dtypes(cache: bool):
-    dtypes = [pl.String, pl.Datetime, pl.Float32]
+@pytest.mark.xdist_group(name='test_query_types')
+def test_query_types(cache: bool):
+    types = [pl.String, pl.Datetime, pl.Float32]
     df = spice.query(
-        4388, dtypes=dtypes, cache=cache, cache_dir='/tmp/dune_spice/test_query_dtypes'
+        4388, types=types, cache=cache, cache_dir='/tmp/dune_spice/test_query_types'
     )
-    assert list(df.schema.values()) == dtypes
+    assert list(df.schema.values()) == types
 
 
 @pytest.mark.parametrize('cache', [False, True, True])

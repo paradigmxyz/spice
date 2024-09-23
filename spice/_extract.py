@@ -48,7 +48,7 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -76,7 +76,7 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -104,7 +104,7 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -131,7 +131,7 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -157,7 +157,7 @@ def query(
     - columns: columns to retrieve, by default retrieve all columns
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
-    - dtypes: dtypes to use in output polars dataframe
+    - types: column types to use in output polars dataframe
     - cache: whether to use cache for saving or loading
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only
@@ -190,7 +190,7 @@ def query(
         'sort_by': sort_by,
         'columns': columns,
         'extras': extras,
-        'dtypes': dtypes,
+        'types': types,
         'verbose': verbose,
     }
     output_kwargs: OutputKwargs = {
@@ -254,7 +254,7 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -282,7 +282,7 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -310,7 +310,7 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -337,7 +337,7 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -363,7 +363,7 @@ async def async_query(
     - columns: columns to retrieve, by default retrieve all columns
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
-    - dtypes: dtypes to use in output polars dataframe
+    - types: column types to use in output polars dataframe
     - cache: whether to use cache for saving or loading
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only
@@ -396,7 +396,7 @@ async def async_query(
         'sort_by': sort_by,
         'columns': columns,
         'extras': extras,
-        'dtypes': dtypes,
+        'types': types,
         'verbose': verbose,
     }
     output_kwargs: OutputKwargs = {
@@ -763,10 +763,10 @@ def _get_results(
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
-    if 'dtypes' in data:
-        dtypes: Optional[Sequence[type[pl.DataType]]] = data.pop('dtypes')  # type: ignore
+    if 'types' in data:
+        types: Optional[Sequence[type[pl.DataType]]] = data.pop('types')  # type: ignore
     else:
-        dtypes = None
+        types = None
     if 'verbose' in data:
         verbose: int | bool | None = data.pop('verbose')  # type: ignore
     else:
@@ -821,7 +821,7 @@ def _get_results(
     except json.JSONDecodeError:
         pass
     result = response.text
-    df = _process_raw_table(result, dtypes=dtypes)
+    df = _process_raw_table(result, types=types)
 
     # get all pages
     limit = result_kwargs.get('limit')
@@ -836,7 +836,7 @@ def _get_results(
                 print('gathering additional page, offset = ' + str(offset))
             url = response.headers['x-dune-next-uri']
             response = requests.get(url, headers=headers)
-            page = _process_raw_table(response.text, dtypes=dtypes)
+            page = _process_raw_table(response.text, types=types)
             n_rows += len(page)
             pages.append(page)
         df = pl.concat([df, *pages]).limit(limit)
@@ -861,10 +861,10 @@ async def _async_get_results(
         api_key = _urls.get_api_key()
     headers = {'X-Dune-API-Key': api_key}
     data = dict(result_kwargs.items())
-    if 'dtypes' in data:
-        dtypes: Optional[Sequence[type[pl.DataType]]] = data.pop('dtypes')  # type: ignore
+    if 'types' in data:
+        types: Optional[Sequence[type[pl.DataType]]] = data.pop('types')  # type: ignore
     else:
-        dtypes = None
+        types = None
     if 'verbose' in data:
         verbose: int | bool | None = data.pop('verbose')  # type: ignore
     else:
@@ -919,7 +919,7 @@ async def _async_get_results(
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
         pass
-    df = _process_raw_table(result, dtypes=dtypes)
+    df = _process_raw_table(result, types=types)
 
     # get all pages
     limit = result_kwargs.get('limit')
@@ -937,7 +937,7 @@ async def _async_get_results(
                 async with session.get(url, headers=headers) as response:
                     result = await response.text()
                     response_headers = response.headers
-                page = _process_raw_table(result, dtypes=dtypes)
+                page = _process_raw_table(result, types=types)
                 n_rows += len(page)
                 pages.append(page)
 
@@ -948,7 +948,7 @@ async def _async_get_results(
 
 def _process_raw_table(
     raw_csv: str,
-    dtypes: Sequence[type[pl.DataType] | None]
+    types: Sequence[type[pl.DataType] | None]
     | Mapping[str, type[pl.DataType] | None]
     | None,
 ) -> pl.DataFrame:
@@ -968,43 +968,43 @@ def _process_raw_table(
     )
 
     # cast types
-    new_dtypes = []
+    new_types = []
     for c, column in enumerate(df.columns):
-        new_dtype = None
-        if dtypes is not None:
-            if isinstance(dtypes, list):
-                if len(dtypes) > c and dtypes[c] is not None:
-                    new_dtype = dtypes[c]
-            elif isinstance(dtypes, dict):
-                if column in dtypes and dtypes[column] is not None:
-                    new_dtype = dtypes[column]
+        new_type = None
+        if types is not None:
+            if isinstance(types, list):
+                if len(types) > c and types[c] is not None:
+                    new_type = types[c]
+            elif isinstance(types, dict):
+                if column in types and types[column] is not None:
+                    new_type = types[column]
             else:
-                raise Exception('invalid format for dtypes')
+                raise Exception('invalid format for types')
 
-        if new_dtype is None:
-            new_dtype = infer_dtype(df[column])
+        if new_type is None:
+            new_type = infer_type(df[column])
 
-        if new_dtype == pl.Datetime or isinstance(new_dtype, pl.Datetime):
+        if new_type == pl.Datetime or isinstance(new_type, pl.Datetime):
             time_format = '%Y-%m-%d %H:%M:%S%.3f %Z'
             df = df.with_columns(pl.col(column).str.to_datetime(time_format))
-            new_dtype = None
+            new_type = None
 
-        new_dtypes.append(new_dtype)
+        new_types.append(new_type)
 
     new_columns = []
-    for column, dtype in zip(df.columns, new_dtypes):
-        if dtype is not None:
-            if dtype == pl.Boolean:
+    for column, type in zip(df.columns, new_types):
+        if type is not None:
+            if type == pl.Boolean:
                 new_column = pl.col(column) == 'true'
             else:
-                new_column = pl.col(column).cast(dtype)
+                new_column = pl.col(column).cast(type)
             new_columns.append(new_column)
     df = df.with_columns(*new_columns)
 
     return df
 
 
-def infer_dtype(s: pl.Series) -> pl.DataType:
+def infer_type(s: pl.Series) -> pl.DataType:
     import polars as pl
 
     try:

@@ -122,18 +122,18 @@ def _build_cache_path(
     import json
 
     # get parameter hash
-    if result_kwargs['dtypes'] is None:
-        dtypes: list[str | list[str]] | None = None
+    if result_kwargs['types'] is None:
+        types: list[str | list[str]] | None = None
     else:
-        dtypes = []
-        if isinstance(result_kwargs['dtypes'], list):
-            for dtype in result_kwargs['dtypes']:
-                dtypes.append(str(dtype))
-        elif isinstance(result_kwargs['dtypes'], dict):
-            for name, dtype in result_kwargs['dtypes'].items():
-                dtypes.append([name, str(dtype)])
+        types = []
+        if isinstance(result_kwargs['types'], list):
+            for type in result_kwargs['types']:
+                types.append(str(type))
+        elif isinstance(result_kwargs['types'], dict):
+            for name, type in result_kwargs['types'].items():
+                types.append([name, str(type)])
         else:
-            raise Exception('invalid format for dtypes')
+            raise Exception('invalid format for types')
     hash_params = {
         'spice_version': spice.__version__,
         'execution_id': execution['execution_id'],
@@ -145,7 +145,7 @@ def _build_cache_path(
         'sort_by': result_kwargs['sort_by'],
         'columns': result_kwargs['columns'],
         'extras': result_kwargs['extras'],
-        'dtypes': dtypes,
+        'types': types,
     }
     md5_hash = hashlib.md5()
     md5_hash.update(json.dumps(hash_params, sort_keys=True).encode('utf-8'))

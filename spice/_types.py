@@ -37,7 +37,7 @@ class RetrievalKwargs(TypedDict):
     sort_by: str | None
     columns: Sequence[str] | None
     extras: Mapping[str, Any] | None
-    dtypes: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None
+    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None
     verbose: bool
 
 

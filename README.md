@@ -91,7 +91,7 @@ spice $QUERY --parameters network=ethereum
 - automatically cache results locally to save time and credits for repeated queries
 - automatically handle pagination of multi-page results
 - automatically execute queries that have no existing executions, especially when using new parameter values
-- allow type overrides using the `dtypes` parameter
+- allow type overrides using the `types` parameter
 - support raw dynamic querying using parameter templates in order to 1) minimize roundtrips and 2) not require a paid API plan
 
 ## API Reference
@@ -118,7 +118,7 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    dtypes: Sequence[pl.DataType] | None = None,
+    types: Sequence[pl.DataType] | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -143,7 +143,7 @@ def query(
     - columns: columns to retrieve, by default retrieve all columns
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
-    - dtypes: dtypes to use in output polars dataframe
+    - types: column types to use in output polars dataframe
     - cache: whether to use cache for saving or loading
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only

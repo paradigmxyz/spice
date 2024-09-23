@@ -286,7 +286,7 @@ def run_cli() -> None:
         sort_by=args.sort_by,
         columns=args.columns,
         extras=None,
-        dtypes=types,
+        types=types,
         cache=not args.no_cache,
         cache_dir=args.cache_dir,
         save_to_cache=not args.no_cache_save,
