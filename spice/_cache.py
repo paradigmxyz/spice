@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import typing
 
+import spice
 from . import _extract
 
 if typing.TYPE_CHECKING:
@@ -134,6 +135,7 @@ def _build_cache_path(
         else:
             raise Exception('invalid format for dtypes')
     hash_params = {
+        'spice_version': spice.__version__,
         'execution_id': execution['execution_id'],
         'query_id': execute_kwargs['query_id'],
         'parameters': execute_kwargs['parameters'],
