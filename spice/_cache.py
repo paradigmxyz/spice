@@ -71,7 +71,7 @@ async def async_load_from_cache(
 
         if result_kwargs['verbose']:
             print('loading result from cache')
-        df = pl.read_parquet(cache_path)
+        df = await pl.scan_parquet(cache_path).collect_async()
         if output_kwargs['include_execution']:
             return (df, execution), execution
         else:
