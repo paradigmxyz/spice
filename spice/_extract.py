@@ -994,6 +994,14 @@ def _process_raw_table(
 
         new_types.append(new_type)
 
+    # check that all types were used
+    if isinstance(types, dict):
+        missing_columns = [name for name in types.keys() if name not in df.columns]
+        if len(missing_columns) > 0:
+            raise Exception(
+                'types specified for missing columns: ' + str(missing_columns)
+            )
+
     new_columns = []
     for column, type in zip(df.columns, new_types):
         if type is not None:
