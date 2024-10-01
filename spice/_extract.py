@@ -501,6 +501,8 @@ def _determine_input_type(
     query_or_execution: Query | Execution,
     parameters: Mapping[str, Any] | None = None,
 ) -> tuple[int | None, Execution | None, Mapping[str, Any] | None]:
+    if isinstance(query_or_execution, str) and query_or_execution == '':
+        raise Exception('empty query')
     if isinstance(query_or_execution, (int, str)):
         if _is_sql(query_or_execution):
             query_id = 4060379
