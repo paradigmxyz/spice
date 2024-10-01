@@ -1051,6 +1051,8 @@ def _poll_execution(
         response = requests.get(url, headers=headers)
         result = response.json()
         if result['is_execution_finished']:
+            if result['state'] == 'QUERY_STATE_FAILED':
+                raise Exception('QUERY FAILED execution_id={}'.format(execution_id))
             execution['timestamp'] = _parse_timestamp(result['execution_started_at'])
             break
 
@@ -1101,6 +1103,10 @@ async def _async_poll_execution(
             async with session.get(url, headers=headers) as response:
                 result = await response.json()
                 if result['is_execution_finished']:
+                    if result['state'] == 'QUERY_STATE_FAILED':
+                        raise Exception(
+                            'QUERY FAILED execution_id={}'.format(execution_id)
+                        )
                     execution['timestamp'] = _parse_timestamp(
                         result['execution_started_at']
                     )
