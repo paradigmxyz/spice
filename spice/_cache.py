@@ -118,6 +118,26 @@ def save_to_cache(
     shutil.move(tmp_path, cache_path)
 
 
+def _preserialize_types(
+    result_kwargs: _extract.RetrievalKwargs,
+    key: str,
+) -> list[str | list[str]] | None:
+    raw = result_kwargs[key]  # type: ignore
+    if raw is None:
+        types: list[str | list[str]] | None = None
+    else:
+        types = []
+        if isinstance(raw, list):
+            for type in raw:
+                types.append(str(type))
+        elif isinstance(raw, dict):
+            for name, type in raw.items():
+                types.append([name, str(type)])
+        else:
+            raise Exception('invalid format for ' + key)
+    return types
+
+
 def _build_cache_path(
     execution: Execution,
     execute_kwargs: _extract.ExecuteKwargs,
@@ -128,18 +148,8 @@ def _build_cache_path(
     import json
 
     # get parameter hash
-    if result_kwargs['types'] is None:
-        types: list[str | list[str]] | None = None
-    else:
-        types = []
-        if isinstance(result_kwargs['types'], list):
-            for type in result_kwargs['types']:
-                types.append(str(type))
-        elif isinstance(result_kwargs['types'], dict):
-            for name, type in result_kwargs['types'].items():
-                types.append([name, str(type)])
-        else:
-            raise Exception('invalid format for types')
+    types = _preserialize_types(result_kwargs, 'types')
+    all_types = _preserialize_types(result_kwargs, 'all_types')
     hash_params = {
         'spice_version': spice.__version__,
         'execution_id': execution['execution_id'],
@@ -152,6 +162,7 @@ def _build_cache_path(
         'columns': result_kwargs['columns'],
         'extras': result_kwargs['extras'],
         'types': types,
+        'all_types': all_types,
     }
     md5_hash = hashlib.md5()
     md5_hash.update(json.dumps(hash_params, sort_keys=True).encode('utf-8'))

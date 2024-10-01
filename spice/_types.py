@@ -38,6 +38,9 @@ class RetrievalKwargs(TypedDict):
     columns: Sequence[str] | None
     extras: Mapping[str, Any] | None
     types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None
+    all_types: (
+        Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None
+    )
     verbose: bool
 
 

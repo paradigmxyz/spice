@@ -164,6 +164,12 @@ This will 1. collect query data, 2. print it, and 3. save it to disk[grey62 not 
         nargs='+',
     )
     group.add_argument(
+        '--all-types',
+        metavar='COLUMN=DTYPE',
+        help='strict types of all columns',
+        nargs='+',
+    )
+    group.add_argument(
         '--sample-count',
         metavar='COUNT',
         type=int,
@@ -273,6 +279,13 @@ def run_cli() -> None:
         for arg in args.types:
             key, value = arg.split('=')
             types[key] = eval(value)
+    if args.all_types is None:
+        all_types = None
+    else:
+        all_types = {}
+        for arg in args.all_types:
+            key, value = arg.split('=')
+            all_types[key] = eval(value)
 
     if args.pipe:
         if args.interactive:
@@ -297,6 +310,7 @@ def run_cli() -> None:
         columns=args.columns,
         extras=None,
         types=types,
+        all_types=all_types,
         cache=not args.no_cache,
         cache_dir=args.cache_dir,
         save_to_cache=not args.no_cache_save,

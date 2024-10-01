@@ -52,6 +52,9 @@ def query(
     types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
+    all_types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -79,6 +82,9 @@ def query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
+    all_types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
     cache: bool = True,
@@ -110,6 +116,9 @@ def query(
     types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
+    all_types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -138,6 +147,9 @@ def query(
     types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
+    all_types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -164,6 +176,7 @@ def query(
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
     - types: column types to use in output polars dataframe
+    - all_types: like types, but must strictly include all columns in data
     - cache: whether to use cache for saving or loading
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only
@@ -197,6 +210,7 @@ def query(
         'columns': columns,
         'extras': extras,
         'types': types,
+        'all_types': all_types,
         'verbose': verbose,
     }
     output_kwargs: OutputKwargs = {
@@ -263,6 +277,9 @@ async def async_query(
     types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
+    all_types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -290,6 +307,9 @@ async def async_query(
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
     types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
+    all_types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
     cache: bool = True,
@@ -321,6 +341,9 @@ async def async_query(
     types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
+    all_types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -349,6 +372,9 @@ async def async_query(
     types: Sequence[type[pl.DataType]]
     | Mapping[str, type[pl.DataType]]
     | None = None,
+    all_types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -375,6 +401,7 @@ async def async_query(
     - extras: extra parameters used for fetching execution result
         - examples: ignore_max_datapoints_per_request, allow_partial_results
     - types: column types to use in output polars dataframe
+    - all_types: like types, but must strictly include all columns in data
     - cache: whether to use cache for saving or loading
     - cache_dir: directory to use for cached data (create tmp_dir if None)
     - save_to_cache: whether to save to cache, set false to load only
@@ -408,6 +435,7 @@ async def async_query(
         'columns': columns,
         'extras': extras,
         'types': types,
+        'all_types': all_types,
         'verbose': verbose,
     }
     output_kwargs: OutputKwargs = {
@@ -796,6 +824,10 @@ def _get_results(
         types: Optional[Sequence[type[pl.DataType]]] = data.pop('types')  # type: ignore
     else:
         types = None
+    if 'all_types' in data:
+        all_types: Optional[Sequence[type[pl.DataType]]] = data.pop('all_types')  # type: ignore
+    else:
+        all_types = None
     if 'verbose' in data:
         verbose: int | bool | None = data.pop('verbose')  # type: ignore
     else:
@@ -853,7 +885,7 @@ def _get_results(
     except json.JSONDecodeError:
         pass
     result = response.text
-    df = _process_raw_table(result, types=types)
+    df = _process_raw_table(result, types=types, all_types=all_types)
 
     # get all pages
     limit = result_kwargs.get('limit')
@@ -868,7 +900,9 @@ def _get_results(
                 print('gathering additional page, offset = ' + str(offset))
             url = response.headers['x-dune-next-uri']
             response = requests.get(url, headers=headers)
-            page = _process_raw_table(response.text, types=types)
+            page = _process_raw_table(
+                response.text, types=types, all_types=all_types
+            )
             n_rows += len(page)
             pages.append(page)
         df = pl.concat([df, *pages]).limit(limit)
@@ -897,6 +931,10 @@ async def _async_get_results(
         types: Optional[Sequence[type[pl.DataType]]] = data.pop('types')  # type: ignore
     else:
         types = None
+    if 'all_types' in data:
+        all_types: Optional[Sequence[type[pl.DataType]]] = data.pop('all_types')  # type: ignore
+    else:
+        all_types = None
     if 'verbose' in data:
         verbose: int | bool | None = data.pop('verbose')  # type: ignore
     else:
@@ -954,7 +992,7 @@ async def _async_get_results(
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
         pass
-    df = _process_raw_table(result, types=types)
+    df = _process_raw_table(result, types=types, all_types=all_types)
 
     # get all pages
     limit = result_kwargs.get('limit')
@@ -972,7 +1010,9 @@ async def _async_get_results(
                 async with session.get(url, headers=headers) as response:
                     result = await response.text()
                     response_headers = response.headers
-                page = _process_raw_table(result, types=types)
+                page = _process_raw_table(
+                    result, types=types, all_types=all_types
+                )
                 n_rows += len(page)
                 pages.append(page)
 
@@ -986,6 +1026,9 @@ def _process_raw_table(
     types: Sequence[type[pl.DataType] | None]
     | Mapping[str, type[pl.DataType] | None]
     | None,
+    all_types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
 ) -> pl.DataFrame:
     import polars as pl
 
@@ -1001,6 +1044,12 @@ def _process_raw_table(
         truncate_ragged_lines=True,
         schema_overrides=[pl.String for column in column_order],
     )
+
+    # check if using all_types
+    if all_types is not None and types is not None:
+        raise Exception('cannot specify both types and all_types')
+    elif all_types is not None:
+        types = all_types
 
     # cast types
     new_types = []
@@ -1034,6 +1083,12 @@ def _process_raw_table(
         if len(missing_columns) > 0:
             raise Exception(
                 'types specified for missing columns: ' + str(missing_columns)
+            )
+    if all_types is not None:
+        missing_columns = [name for name in df.columns if name not in all_types]
+        if len(missing_columns) > 0:
+            raise Exception(
+                'types not specified for columns: ' + str(missing_columns)
             )
 
     new_columns = []
