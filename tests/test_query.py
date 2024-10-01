@@ -19,15 +19,24 @@ def test_query(cache: bool):
 @pytest.mark.xdist_group(name='test_query_limits')
 def test_query_limits(cache: bool):
     df10 = spice.query(
-        4388, limit=10, cache=cache, cache_dir='/tmp/dune_spice/test_query_limits'
+        4388,
+        limit=10,
+        cache=cache,
+        cache_dir='/tmp/dune_spice/test_query_limits',
     )
     assert len(df10) == 10
     df100 = spice.query(
-        4388, limit=100, cache=cache, cache_dir='/tmp/dune_spice/test_query_limits'
+        4388,
+        limit=100,
+        cache=cache,
+        cache_dir='/tmp/dune_spice/test_query_limits',
     )
     assert len(df100) == 100
     df1000 = spice.query(
-        4388, limit=1000, cache=cache, cache_dir='/tmp/dune_spice/test_query_limits'
+        4388,
+        limit=1000,
+        cache=cache,
+        cache_dir='/tmp/dune_spice/test_query_limits',
     )
     assert len(df1000) == 1000
 
@@ -75,7 +84,9 @@ def test_query_sort(cache: bool):
         cache=cache,
         cache_dir='/tmp/dune_spice/test_query_sort',
     )
-    assert df_sort_project.equals(df_sort_project.sort('project', nulls_last=True))
+    assert df_sort_project.equals(
+        df_sort_project.sort('project', nulls_last=True)
+    )
 
     df_sort_usd_volume = spice.query(
         4388,
@@ -101,7 +112,9 @@ def test_query_columns(cache: bool):
         cache_dir='/tmp/dune_spice/test_query_columns',
     )
     assert df_columns.columns == columns
-    df = spice.query(4388, cache=cache, cache_dir='/tmp/dune_spice/test_query_columns')
+    df = spice.query(
+        4388, cache=cache, cache_dir='/tmp/dune_spice/test_query_columns'
+    )
     assert df.columns != columns
 
 
@@ -110,7 +123,10 @@ def test_query_columns(cache: bool):
 def test_query_types(cache: bool):
     types = [pl.String, pl.Datetime, pl.Float32]
     df = spice.query(
-        4388, types=types, cache=cache, cache_dir='/tmp/dune_spice/test_query_types'
+        4388,
+        types=types,
+        cache=cache,
+        cache_dir='/tmp/dune_spice/test_query_types',
     )
     assert list(df.schema.values()) == types
 
@@ -121,7 +137,9 @@ def test_query_without_polling(cache: bool):
     execution = spice.query(4388, poll=False, refresh=True)
     df_no_poll = spice.query(execution)
     df_poll = spice.query(
-        4388, cache=cache, cache_dir='/tmp/dune_spice/test_query_without_polling'
+        4388,
+        cache=cache,
+        cache_dir='/tmp/dune_spice/test_query_without_polling',
     )
     assert df_no_poll.equals(df_poll)
 

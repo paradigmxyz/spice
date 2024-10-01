@@ -49,14 +49,15 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
     include_execution: bool = False,
-) -> Execution:
-    ...
+) -> Execution: ...
 
 
 @overload
@@ -77,14 +78,15 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
     include_execution: Literal[False] = False,
-) -> pl.DataFrame:
-    ...
+) -> pl.DataFrame: ...
 
 
 @overload
@@ -105,14 +107,15 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
     include_execution: Literal[True],
-) -> tuple[pl.DataFrame, Execution]:
-    ...
+) -> tuple[pl.DataFrame, Execution]: ...
 
 
 def query(
@@ -132,7 +135,9 @@ def query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -255,14 +260,15 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
     include_execution: bool = False,
-) -> Execution:
-    ...
+) -> Execution: ...
 
 
 @overload
@@ -283,14 +289,15 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
     include_execution: Literal[False] = False,
-) -> pl.DataFrame:
-    ...
+) -> pl.DataFrame: ...
 
 
 @overload
@@ -311,14 +318,15 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
     load_from_cache: bool = True,
     include_execution: Literal[True],
-) -> tuple[pl.DataFrame, Execution]:
-    ...
+) -> tuple[pl.DataFrame, Execution]: ...
 
 
 async def async_query(
@@ -338,7 +346,9 @@ async def async_query(
     sort_by: str | None = None,
     columns: Sequence[str] | None = None,
     extras: Mapping[str, Any] | None = None,
-    types: Sequence[type[pl.DataType]] | Mapping[str, type[pl.DataType]] | None = None,
+    types: Sequence[type[pl.DataType]]
+    | Mapping[str, type[pl.DataType]]
+    | None = None,
     cache: bool = True,
     cache_dir: str | None = None,
     save_to_cache: bool = True,
@@ -420,13 +430,18 @@ async def async_query(
             if execution is None and cache_execution is not None:
                 execution = cache_execution
         if max_age is not None and not refresh:
-            age = await _async_get_query_latest_age(**execute_kwargs, verbose=verbose)  # type: ignore
+            age = await _async_get_query_latest_age(
+                **execute_kwargs,  # type: ignore
+                verbose=verbose,
+            )
             if age is None or age > max_age:
                 refresh = True
         if not refresh:
             df = await _async_get_results(**execute_kwargs, **result_kwargs)
             if df is not None:
-                return await _async_process_result(df, execution, **output_kwargs)
+                return await _async_process_result(
+                    df, execution, **output_kwargs
+                )
         execution = await _async_execute(**execute_kwargs, verbose=verbose)
 
     # await execution completion
@@ -458,7 +473,9 @@ def _process_result(
             execution = get_latest_execution(execute_kwargs)
             if execution is None:
                 raise Exception('could not get execution')
-        _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+        _cache.save_to_cache(
+            df, execution, execute_kwargs, result_kwargs, cache_dir
+        )
 
     if include_execution:
         if execution is None:
@@ -485,7 +502,9 @@ async def _async_process_result(
             execution = await async_get_latest_execution(execute_kwargs)
             if execution is None:
                 raise Exception('could not get execution')
-        _cache.save_to_cache(df, execution, execute_kwargs, result_kwargs, cache_dir)
+        _cache.save_to_cache(
+            df, execution, execute_kwargs, result_kwargs, cache_dir
+        )
 
     if include_execution:
         if execution is None:
@@ -511,7 +530,10 @@ def _determine_input_type(
         else:
             query_id = _urls.get_query_id(query_or_execution)
             execution = None
-    elif isinstance(query_or_execution, dict) and 'execution_id' in query_or_execution:
+    elif (
+        isinstance(query_or_execution, dict)
+        and 'execution_id' in query_or_execution
+    ):
         query_id = None
         execution = query_or_execution
     else:
@@ -573,7 +595,9 @@ def _get_query_latest_age(
                 == 'not found: No execution found for the latest version of the given query'
             ):
                 if verbose:
-                    print('no age for query, because no previous executions exist')
+                    print(
+                        'no age for query, because no previous executions exist'
+                    )
                 return None
             raise Exception(result['error'])
     except json.JSONDecodeError:
@@ -648,7 +672,9 @@ async def _async_get_query_latest_age(
                 == 'not found: No execution found for the latest version of the given query'
             ):
                 if verbose:
-                    print('no age for query, because no previous executions exist')
+                    print(
+                        'no age for query, because no previous executions exist'
+                    )
                 return None
             raise Exception(result['error'])
     except json.JSONDecodeError:
@@ -792,7 +818,10 @@ def _get_results(
         if query_id is not None:
             print('getting results, query_id = ' + str(query_id))
         elif execution:
-            print('getting results, execution_id = ' + str(execution['execution_id']))
+            print(
+                'getting results, execution_id = '
+                + str(execution['execution_id'])
+            )
         if verbose >= 2:
             print('results url = ' + str(url))
 
@@ -888,7 +917,10 @@ async def _async_get_results(
         if query_id is not None:
             print('getting results, query_id = ' + str(query_id))
         elif execution:
-            print('getting results, execution_id = ' + str(execution['execution_id']))
+            print(
+                'getting results, execution_id = '
+                + str(execution['execution_id'])
+            )
         if verbose >= 2:
             print('results url = ' + str(url))
 
@@ -996,7 +1028,9 @@ def _process_raw_table(
 
     # check that all types were used
     if isinstance(types, dict):
-        missing_columns = [name for name in types.keys() if name not in df.columns]
+        missing_columns = [
+            name for name in types.keys() if name not in df.columns
+        ]
         if len(missing_columns) > 0:
             raise Exception(
                 'types specified for missing columns: ' + str(missing_columns)
@@ -1062,8 +1096,12 @@ def _poll_execution(
         result = response.json()
         if result['is_execution_finished']:
             if result['state'] == 'QUERY_STATE_FAILED':
-                raise Exception('QUERY FAILED execution_id={}'.format(execution_id))
-            execution['timestamp'] = _parse_timestamp(result['execution_started_at'])
+                raise Exception(
+                    'QUERY FAILED execution_id={}'.format(execution_id)
+                )
+            execution['timestamp'] = _parse_timestamp(
+                result['execution_started_at']
+            )
             break
 
         # wait until polling interval
@@ -1175,11 +1213,15 @@ def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
         return None
     execution: Execution = {'execution_id': result['execution_id']}
     if 'execution_started_at' in result:
-        execution['timestamp'] = int(_parse_timestamp(result['execution_started_at']))
+        execution['timestamp'] = int(
+            _parse_timestamp(result['execution_started_at'])
+        )
     return execution
 
 
-async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
+async def async_get_latest_execution(
+    execute_kwargs: ExecuteKwargs,
+) -> Execution | None:
     import json
     import aiohttp
 
@@ -1221,7 +1263,9 @@ async def async_get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution
         return None
     execution: Execution = {'execution_id': result['execution_id']}
     if 'execution_started_at' in result:
-        execution['timestamp'] = int(_parse_timestamp(result['execution_started_at']))
+        execution['timestamp'] = int(
+            _parse_timestamp(result['execution_started_at'])
+        )
     return execution
 
 

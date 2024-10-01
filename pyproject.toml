@@ -65,5 +65,8 @@ testpaths = [
 [project.scripts]
 spice = "spice._cli:run_cli"
 
+[tool.ruff]
+line-length = 80
+
 [tool.ruff.format]
 quote-style = "single"

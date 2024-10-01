@@ -11,14 +11,18 @@ if typing.TYPE_CHECKING:
     from ._types import Execution
 
 
-cache_template = '{query_id}__{execution_id}__{parameter_hash}__{timestamp}.parquet'
+cache_template = (
+    '{query_id}__{execution_id}__{parameter_hash}__{timestamp}.parquet'
+)
 
 
 def load_from_cache(
     execute_kwargs: _extract.ExecuteKwargs,
     result_kwargs: _extract.RetrievalKwargs,
     output_kwargs: _extract.OutputKwargs,
-) -> tuple[pl.DataFrame | tuple[pl.DataFrame, Execution] | None, Execution | None]:
+) -> tuple[
+    pl.DataFrame | tuple[pl.DataFrame, Execution] | None, Execution | None
+]:
     # get latest execution id
     execution = _extract.get_latest_execution(execute_kwargs)
     if execution is None:
@@ -51,7 +55,9 @@ async def async_load_from_cache(
     execute_kwargs: _extract.ExecuteKwargs,
     result_kwargs: _extract.RetrievalKwargs,
     output_kwargs: _extract.OutputKwargs,
-) -> tuple[pl.DataFrame | tuple[pl.DataFrame, Execution] | None, Execution | None]:
+) -> tuple[
+    pl.DataFrame | tuple[pl.DataFrame, Execution] | None, Execution | None
+]:
     # get latest execution
     execution = await _extract.async_get_latest_execution(execute_kwargs)
     if execution is None:

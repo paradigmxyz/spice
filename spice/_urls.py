@@ -50,7 +50,9 @@ def get_execution_status_url(execution_id: str) -> str:
     return url_templates['execution_status'].format(execution_id=execution_id)
 
 
-def get_execution_results_url(execution_id: str, parameters: Mapping[str, Any]) -> str:
+def get_execution_results_url(
+    execution_id: str, parameters: Mapping[str, Any]
+) -> str:
     url = url_templates['execution_results'].format(execution_id=execution_id)
     return add_args_to_url(url, parameters=parameters)
 
@@ -81,7 +83,9 @@ def get_query_id(query: str | int) -> int:
     if isinstance(query, int):
         return query
     elif query.startswith('https://api.dune.com/api/v1/query/'):
-        query = query.split('https://api.dune.com/api/v1/query/')[1].split('/')[0]
+        query = query.split('https://api.dune.com/api/v1/query/')[1].split('/')[
+            0
+        ]
     elif query.startswith('https://dune.com/queries'):
         query = query.split('https://dune.com/queries/')[1].split('/')[0]
 

@@ -50,7 +50,9 @@ class SpiceHelpFormatter(rich_argparse.RichHelpFormatter):
             if line.startswith('  \x1b[38;2;197;149;242m--'):
                 lines[i] = '    ' + lines[i].replace('    ', '', 1)
         lines = [
-            line for line in lines if 'Options:' not in line and '--help' not in line
+            line
+            for line in lines
+            if 'Options:' not in line and '--help' not in line
         ]
         return (
             '\n'.join(lines)
@@ -115,8 +117,12 @@ This will 1. collect query data, 2. print it, and 3. save it to disk[grey62 not 
         type=float,
         help='max age allowed before re-executing',
     )
-    group.add_argument('--api-key', help='dune api key, default is DUNE_API_KEY')
-    group.add_argument('--performance', help='performance level', default='medium')
+    group.add_argument(
+        '--api-key', help='dune api key, default is DUNE_API_KEY'
+    )
+    group.add_argument(
+        '--performance', help='performance level', default='medium'
+    )
     group.add_argument(
         '--poll-interval',
         metavar='SECONDS',
@@ -169,7 +175,9 @@ This will 1. collect query data, 2. print it, and 3. save it to disk[grey62 not 
         help=argparse.SUPPRESS,
     )
     group = parser.add_argument_group('Cache Parameters')
-    group.add_argument('--no-cache', help='avoid using cache', action='store_true')
+    group.add_argument(
+        '--no-cache', help='avoid using cache', action='store_true'
+    )
     group.add_argument(
         '--no-cache-load',
         help='avoid loading result from cache',
@@ -180,7 +188,9 @@ This will 1. collect query data, 2. print it, and 3. save it to disk[grey62 not 
         help='avoid saving result to cache',
         action='store_true',
     )
-    group.add_argument('--cache-dir', metavar='DIR_PATH', help='cache directory path')
+    group.add_argument(
+        '--cache-dir', metavar='DIR_PATH', help='cache directory path'
+    )
     group = parser.add_argument_group('Output Parameters')
     group.add_argument(
         '-v',
@@ -294,7 +304,9 @@ def run_cli() -> None:
         include_execution=True,
     )
 
-    format = determine_output_format(args.csv, args.json, args.ndjson, args.output_file)
+    format = determine_output_format(
+        args.csv, args.json, args.ndjson, args.output_file
+    )
 
     if verbose >= 2:
         print()
@@ -384,7 +396,9 @@ def determine_output_format(
         return 'csv'
     elif json or (output_file is not None and output_file.endswith('.json')):
         return 'json'
-    elif ndjson or (output_file is not None and output_file.endswith('.ndjson')):
+    elif ndjson or (
+        output_file is not None and output_file.endswith('.ndjson')
+    ):
         return 'ndjson'
     else:
         return 'parquet'
@@ -410,9 +424,13 @@ def get_output_path(
             'dune__{query_name}__{label}__{execute_id}__{execute_time}.parquet'
         )
     else:
-        output_template = 'dune__{query_name}__{execute_id}__{execute_time}.parquet'
+        output_template = (
+            'dune__{query_name}__{execute_id}__{execute_time}.parquet'
+        )
 
-    query_id, _, parameters = spice._extract._determine_input_type(query, parameters)
+    query_id, _, parameters = spice._extract._determine_input_type(
+        query, parameters
+    )
 
     # get query name
     if query_name is not None:
