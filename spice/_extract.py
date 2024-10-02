@@ -809,7 +809,7 @@ def _get_results(
     *,
     query_id: int | None = None,
     parameters: Mapping[str, Any] | None = None,
-    performance: Performance | None = None,
+    performance: Performance = 'medium',
     **result_kwargs: Unpack[RetrievalKwargs],
 ) -> pl.DataFrame | None:
     import json
@@ -829,7 +829,7 @@ def _get_results(
     else:
         all_types = None
     if 'verbose' in data:
-        verbose: int | bool | None = data.pop('verbose')  # type: ignore
+        verbose: bool = data.pop('verbose')  # type: ignore
     else:
         verbose = False
     if performance is not None:
@@ -881,6 +881,42 @@ def _get_results(
                         msg = msg + ' with parameters = ' + str_parameters
                     print(msg)
                 return None
+
+            if (
+                as_json['error']
+                == 'Query state is QUERY_STATE_EXECUTING, cannot provide CSV result'
+            ):
+                if execution is None:
+                    execute_kwargs: ExecuteKwargs = {
+                        'query_id': query_id,
+                        'parameters': parameters,
+                        'performance': performance,
+                        'api_key': api_key,
+                    }
+                    execution = get_latest_execution(
+                        execute_kwargs,
+                        allow_unfinished=True,
+                    )
+                if execution is None:
+                    raise Exception('could not detect execution')
+
+                # poll then rerun
+                _poll_execution(
+                    execution=execution,
+                    api_key=api_key,
+                    poll_interval=1,
+                    verbose=verbose,
+                )
+                return _get_results(
+                    execution=execution,
+                    api_key=api_key,
+                    query_id=query_id,
+                    parameters=parameters,
+                    performance=performance,
+                    **result_kwargs,
+                )
+            else:
+                raise Exception(as_json['error'])
             raise Exception(as_json['error'])
     except json.JSONDecodeError:
         pass
@@ -916,7 +952,7 @@ async def _async_get_results(
     *,
     query_id: int | None = None,
     parameters: Mapping[str, Any] | None = None,
-    performance: Performance | None = None,
+    performance: Performance = 'medium',
     **result_kwargs: Unpack[RetrievalKwargs],
 ) -> pl.DataFrame | None:
     import json
@@ -936,7 +972,7 @@ async def _async_get_results(
     else:
         all_types = None
     if 'verbose' in data:
-        verbose: int | bool | None = data.pop('verbose')  # type: ignore
+        verbose: bool = data.pop('verbose')  # type: ignore
     else:
         verbose = False
     if parameters is not None:
@@ -989,7 +1025,42 @@ async def _async_get_results(
                         msg = msg + ' with parameters = ' + str_parameters
                     print(msg)
                 return None
-            raise Exception(as_json['error'])
+
+            if (
+                as_json['error']
+                == 'Query state is QUERY_STATE_EXECUTING, cannot provide CSV result'
+            ):
+                if execution is None:
+                    execute_kwargs: ExecuteKwargs = {
+                        'query_id': query_id,
+                        'parameters': parameters,
+                        'performance': performance,
+                        'api_key': api_key,
+                    }
+                    execution = await async_get_latest_execution(
+                        execute_kwargs,
+                        allow_unfinished=True,
+                    )
+                if execution is None:
+                    raise Exception('could not detect execution')
+
+                # poll then rerun
+                await _async_poll_execution(
+                    execution=execution,
+                    api_key=api_key,
+                    poll_interval=1,
+                    verbose=verbose,
+                )
+                return await _async_get_results(
+                    execution=execution,
+                    api_key=api_key,
+                    query_id=query_id,
+                    parameters=parameters,
+                    performance=performance,
+                    **result_kwargs,
+                )
+            else:
+                raise Exception(as_json['error'])
     except json.JSONDecodeError:
         pass
     df = _process_raw_table(result, types=types, all_types=all_types)
@@ -1121,6 +1192,8 @@ def _poll_execution(
     poll_interval: float,
     verbose: bool,
 ) -> None:
+    import time
+    import random
     import requests
 
     # process inputs
@@ -1134,6 +1207,7 @@ def _poll_execution(
     t_start = time.time()
 
     # poll until completion
+    sleep_amount = poll_interval
     while True:
         t_poll = time.time()
 
@@ -1149,6 +1223,13 @@ def _poll_execution(
         # poll
         response = requests.get(url, headers=headers)
         result = response.json()
+        if (
+            'is_execution_finished' not in result
+            and response.status_code == 429
+        ):
+            sleep_amount = sleep_amount * random.uniform(1, 2)
+            time.sleep(sleep_amount)
+            continue
         if result['is_execution_finished']:
             if result['state'] == 'QUERY_STATE_FAILED':
                 raise Exception(
@@ -1176,6 +1257,8 @@ async def _async_poll_execution(
     poll_interval: float,
     verbose: bool,
 ) -> None:
+    import asyncio
+    import random
     import aiohttp
 
     # process inputs
@@ -1190,6 +1273,7 @@ async def _async_poll_execution(
 
     # poll until completion
     async with aiohttp.ClientSession() as session:
+        sleep_amount = poll_interval
         while True:
             t_poll = time.time()
 
@@ -1205,6 +1289,13 @@ async def _async_poll_execution(
             # poll
             async with session.get(url, headers=headers) as response:
                 result = await response.json()
+                if (
+                    'is_execution_finished' not in result
+                    and response.status == 429
+                ):
+                    sleep_amount = sleep_amount * random.uniform(1, 2)
+                    await asyncio.sleep(sleep_amount)
+                    continue
                 if result['is_execution_finished']:
                     if result['state'] == 'QUERY_STATE_FAILED':
                         raise Exception(
@@ -1227,7 +1318,12 @@ async def _async_poll_execution(
         raise Exception('QUERY FAILED execution_id={}'.format(execution_id))
 
 
-def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
+def get_latest_execution(
+    execute_kwargs: ExecuteKwargs,
+    *,
+    allow_unfinished: bool = False,
+) -> Execution | None:
+    import random
     import json
     import requests
 
@@ -1247,24 +1343,31 @@ def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
     data['limit'] = 0
     url = _urls.get_query_results_url(query_id, parameters=data, csv=False)
 
-    # perform request
-    response = requests.get(url, headers=headers)
+    sleep_amount = 1.0
+    while True:
+        # perform request
+        response = requests.get(url, headers=headers)
 
-    # check if result is error
-    result = response.json()
-    try:
-        if 'error' in result:
-            if (
-                result['error']
-                == 'not found: No execution found for the latest version of the given query'
-            ):
-                return None
-            raise Exception(result['error'])
-    except json.JSONDecodeError:
-        pass
+        # check if result is error
+        result = response.json()
+        try:
+            if 'error' in result:
+                if (
+                    result['error']
+                    == 'not found: No execution found for the latest version of the given query'
+                ):
+                    return None
+                if response.status_code == 429:
+                    sleep_amount = sleep_amount * random.uniform(1, 2)
+                    time.sleep(sleep_amount)
+                raise Exception(result['error'])
+        except json.JSONDecodeError:
+            pass
+
+        break
 
     # process result
-    if not result['is_execution_finished']:
+    if not result['is_execution_finished'] and not allow_unfinished:
         return None
     execution: Execution = {'execution_id': result['execution_id']}
     if 'execution_started_at' in result:
@@ -1276,7 +1379,10 @@ def get_latest_execution(execute_kwargs: ExecuteKwargs) -> Execution | None:
 
 async def async_get_latest_execution(
     execute_kwargs: ExecuteKwargs,
+    *,
+    allow_unfinished: bool = False,
 ) -> Execution | None:
+    import random
     import json
     import aiohttp
 
@@ -1298,23 +1404,31 @@ async def async_get_latest_execution(
 
     # perform request
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
-            result: Mapping[str, Any] = await response.json()
+        sleep_amount = 1.0
+        while True:
+            async with session.get(url, headers=headers) as response:
+                result: Mapping[str, Any] = await response.json()
 
-    # check if result is error
-    try:
-        if 'error' in result:
-            if (
-                result['error']
-                == 'not found: No execution found for the latest version of the given query'
-            ):
-                return None
-            raise Exception(result['error'])
-    except json.JSONDecodeError:
-        pass
+                # check if result is error
+                try:
+                    if 'error' in result:
+                        if (
+                            result['error']
+                            == 'not found: No execution found for the latest version of the given query'
+                        ):
+                            return None
+                        if response.status == 429:
+                            import asyncio
+
+                            sleep_amount = sleep_amount * random.uniform(1, 2)
+                            await asyncio.sleep(sleep_amount)
+                        raise Exception(result['error'])
+                except json.JSONDecodeError:
+                    pass
+            break
 
     # process result
-    if not result['is_execution_finished']:
+    if not result['is_execution_finished'] and not allow_unfinished:
         return None
     execution: Execution = {'execution_id': result['execution_id']}
     if 'execution_started_at' in result:
