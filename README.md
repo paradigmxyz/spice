@@ -93,6 +93,7 @@ spice $QUERY --parameters network=ethereum
 - automatically execute queries that have no existing executions, especially when using new parameter values
 - allow type overrides using the `types` parameter
 - support raw dynamic querying using parameter templates in order to 1) minimize roundtrips and 2) not require a paid API plan
+- auto-retry with exponential backoff when encountering HTTP429 ratelimit errors
 
 ## API Reference
 
