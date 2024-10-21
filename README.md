@@ -175,6 +175,9 @@ async def async_query(
 #### How do I set my Dune API key?
 `spice` looks for a Dune API key in the `DUNE_API_KEY` environment variable.
 
+#### Does `spice` work with a Dune free account?
+
+Yes. But to fetch the result of large queries, you may need to remove the "250k datapoints per request" limitation in your account settings on the Dune website.
+
 #### Which endpoints does this package support?
 `spice` interacts only with Dune's SQL-related API endpoints, documented [here](https://docs.dune.com/api-reference/executions/execution-object).
-
