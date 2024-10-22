@@ -30,7 +30,7 @@ To discuss `spice`, head to the [Paradigm Data Tools](https://t.me/paradigm_data
 
 Can either use the sync workflow or async workflow. Each workflow has only one function.
 
-See [API Reference](#functions) below for the full list of query function arguments.
+See [API Reference](#api-reference) below for the full list of query function arguments.
 
 ### Sync Workflow
 
