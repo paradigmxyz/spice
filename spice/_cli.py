@@ -435,11 +435,11 @@ def get_output_path(
 
     if label is not None:
         output_template = (
-            'dune__{query_name}__{label}__{execute_id}__{execute_time}.parquet'
+            'dune__{query_name}__{label}__{execute_id}__{execute_time}.{format}'
         )
     else:
         output_template = (
-            'dune__{query_name}__{execute_id}__{execute_time}.parquet'
+            'dune__{query_name}__{execute_id}__{execute_time}.{format}'
         )
 
     query_id, _, parameters = spice._extract._determine_input_type(
@@ -467,6 +467,7 @@ def get_output_path(
         label=label,
         execute_id=execution['execution_id'],
         execute_time=timestamp,
+        format=format,
     )
 
 
