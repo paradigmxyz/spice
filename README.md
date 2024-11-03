@@ -173,7 +173,12 @@ async def async_query(
 ## FAQ
 
 #### How do I set my Dune API key?
-`spice` looks for a Dune API key in the `DUNE_API_KEY` environment variable.
+`spice` looks for a Dune API key in the `DUNE_API_KEY` environment variable. The environment variable can b set in a `.env` file or in a python script as:
+```python
+import os
+
+os.environ["DUNE_API_KEY"] = "your-api-key"
+```
 
 #### How do I obtain a Dune API key?
 
