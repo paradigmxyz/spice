@@ -173,14 +173,12 @@ async def async_query(
 ## FAQ
 
 #### How do I set my Dune API key?
-`spice` looks for a Dune API key in the `DUNE_API_KEY` environment variable. The environment variable can be set in a `.env` file, in a python script as:
-```python
-import os
 
-os.environ["DUNE_API_KEY"] = "your-api-key"
-```
+Set your API key using one of these approaches:
 
-or exported through the shell as `export DUNE_API_KEY="your-api-key"`
+- **specify key across all sessions:** set the DUNE_API_KEY environment variable (e.g. write export DUNE_API_KEY=your-api-key in your ~/.bash_profile)
+- **specify key for single session:** set the 'DUNE_API_KEY' entry in os.environ (e.g. os.environ['DUNE_API_KEY'] = 'your-api-key) with `.env` file
+- **specify key per request:** use the api_key function variable in python (query(api_key='your-api-key', ...)) or the --api-key argument from the cli (spice --api-key your-api-key ...)
 
 #### How do I obtain a Dune API key?
 
