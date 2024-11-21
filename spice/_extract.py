@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import simplejson
 import time
 from typing import overload, TYPE_CHECKING
 
@@ -918,7 +919,7 @@ def _get_results(
             else:
                 raise Exception(as_json['error'])
             raise Exception(as_json['error'])
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, simplejson.errors.JSONDecodeError):
         pass
     result = response.text
     df = _process_raw_table(result, types=types, all_types=all_types)
@@ -1061,7 +1062,7 @@ async def _async_get_results(
                 )
             else:
                 raise Exception(as_json['error'])
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, simplejson.errors.JSONDecodeError):
         pass
     df = _process_raw_table(result, types=types, all_types=all_types)
 
