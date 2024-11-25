@@ -3,6 +3,6 @@
 from ._extract import query, async_query
 from . import helpers
 
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 
 __all__ = ['helpers', 'query', 'async_query']
