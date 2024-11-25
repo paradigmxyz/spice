@@ -176,9 +176,9 @@ async def async_query(
 
 Set your API key using one of these approaches:
 
-1. **specify key across all sessions:** set the `DUNE_API_KEY` environment variable (e.g. write export `DUNE_API_KEY=your-api-key` in your `~/.bash_profile`)
+1. **specify key for all sessions:** set the `DUNE_API_KEY` environment variable (e.g. write export `DUNE_API_KEY=your-api-key` in your `~/.bash_profile`)
 2. **specify key for single session:** set the `DUNE_API_KEY` entry in python's `os.environ` (e.g. `os.environ['DUNE_API_KEY'] = your-api-key`)
-3. **specify key per query:** use the `api_key` function variable in python (`query(api_key='your-api-key', ...)`) or the `--api-key` argument from the cli (`spice --api-key your-api-key ...```)
+3. **specify key for query:** in python use the `api_key` argument (`df = query(api_key='your-api-key', ...)`) or for cli use the `--api-key` argument (`spice --api-key your-api-key ...`)
 
 #### How do I obtain a Dune API key?
 
@@ -191,4 +191,5 @@ Set your API key using one of these approaches:
 Yes. But to fetch the result of large queries, you may need to remove the "250k datapoints per request" limitation in your account settings on the Dune website.
 
 #### Which endpoints does this package support?
+
 `spice` interacts only with Dune's SQL-related API endpoints, documented [here](https://docs.dune.com/api-reference/executions/execution-object).
