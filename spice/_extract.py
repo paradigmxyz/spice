@@ -1061,7 +1061,7 @@ async def _async_get_results(
                 )
             else:
                 raise Exception(as_json['error'])
-    except requests.JSONDecodeError:
+    except json.JSONDecodeError:
         pass
     df = _process_raw_table(result, types=types, all_types=all_types)
 
