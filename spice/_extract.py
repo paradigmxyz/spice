@@ -918,7 +918,7 @@ def _get_results(
             else:
                 raise Exception(as_json['error'])
             raise Exception(as_json['error'])
-    except requests.JSONDecodeError:
+    except json.JSONDecodeError:
         pass
     result = response.text
     df = _process_raw_table(result, types=types, all_types=all_types)
