@@ -812,7 +812,6 @@ def _get_results(
     performance: Performance = 'medium',
     **result_kwargs: Unpack[RetrievalKwargs],
 ) -> pl.DataFrame | None:
-    import json
     import requests
 
     # process inputs
