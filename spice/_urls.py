@@ -89,6 +89,9 @@ def get_query_id(query: str | int) -> int:
     elif query.startswith('https://dune.com/queries'):
         query = query.split('https://dune.com/queries/')[1].split('/')[0]
 
+    elif query.startswith('dune.com/queries'):
+        query = query.split('dune.com/queries/')[1].split('/')[0]
+
     try:
         return int(query)
     except ValueError:

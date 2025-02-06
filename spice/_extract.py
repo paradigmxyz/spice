@@ -574,7 +574,11 @@ def _is_sql(query: int | str) -> bool:
     if isinstance(query, int):
         return False
     elif isinstance(query, str):
-        if query.startswith('https://') or query.startswith('api.dune.com'):
+        if (
+            query.startswith('https://')
+            or query.startswith('api.dune.com')
+            or query.startswith('dune.com/queries')
+        ):
             return False
         else:
             try:
