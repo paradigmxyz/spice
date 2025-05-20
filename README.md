@@ -1,6 +1,6 @@
 # spice 🌶️
 
-Simple client for extracting data from the [Dune Analytics API](https://docs.dune.com/api-reference/overview/introduction)
+Simple client for extracting data from the [Dune SQL API](https://docs.dune.com/api-reference/overview/introduction)
 
 Goals of `spice`:
 - use as a python library or as a CLI tool
