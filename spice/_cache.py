@@ -41,7 +41,7 @@ def load_from_cache(
         import polars as pl
 
         if result_kwargs['verbose']:
-            print('loading result from cache')
+            print('loading dune query result from cache')
         df = pl.read_parquet(cache_path)
         if output_kwargs['include_execution']:
             return (df, execution), execution
@@ -76,7 +76,7 @@ async def async_load_from_cache(
         import polars as pl
 
         if result_kwargs['verbose']:
-            print('loading result from cache')
+            print('loading dune query result from cache')
         df = await pl.scan_parquet(cache_path).collect_async()
         if output_kwargs['include_execution']:
             return (df, execution), execution
